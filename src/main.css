@@ -1,0 +1,250 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS Variables for Design System */
+:root {
+  --grid-size: 64px;
+  --wall-thickness: 8px;
+  --border-radius: 8px;
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 12px 0 rgb(0 0 0 / 0.15);
+  --shadow-lg: 0 10px 25px 0 rgb(0 0 0 / 0.2);
+  --glow-indigo: 0 0 20px rgb(99 102 241 / 0.5);
+  --glow-emerald: 0 0 15px rgb(16 185 129 / 0.4);
+}
+
+/* Base Styles */
+body {
+  @apply bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-screen;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Layout Components */
+.app-container {
+  @apply min-h-screen flex flex-col;
+}
+
+.app-header {
+  @apply bg-gradient-to-r from-slate-900 to-slate-800 border-b border-slate-700;
+  @apply px-6 py-4 flex items-center justify-between;
+}
+
+.app-title {
+  @apply text-2xl font-bold text-white flex items-center gap-3;
+}
+
+.app-version {
+  @apply text-xs text-slate-400 bg-slate-700 px-2 py-1 rounded-full;
+}
+
+.toolbar {
+  @apply bg-slate-800 border-b border-slate-700 px-6 py-3;
+  @apply flex items-center gap-6 flex-wrap;
+}
+
+.tool-group {
+  @apply flex items-center gap-2;
+}
+
+.tool-label {
+  @apply text-sm font-medium text-slate-300;
+}
+
+/* Form Controls */
+.control-select {
+  @apply bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white;
+  @apply focus:ring-2 focus:ring-indigo-500 focus:border-transparent;
+  @apply transition-all duration-150;
+}
+
+.control-input {
+  @apply bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white;
+  @apply focus:ring-2 focus:ring-indigo-500 focus:border-transparent;
+  @apply transition-all duration-150 w-24;
+}
+
+.control-checkbox {
+  @apply w-4 h-4 text-indigo-600 bg-slate-700 border-slate-600 rounded;
+  @apply focus:ring-indigo-500 focus:ring-2;
+}
+
+/* Buttons */
+.btn {
+  @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm;
+  @apply transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2;
+}
+
+.btn-primary {
+  @apply bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500;
+  @apply shadow-lg hover:shadow-xl;
+}
+
+.btn-secondary {
+  @apply bg-slate-700 text-slate-200 hover:bg-slate-600 focus:ring-slate-500;
+  @apply border border-slate-600;
+}
+
+.btn-ghost {
+  @apply bg-transparent text-slate-300 hover:bg-slate-700 focus:ring-slate-500;
+}
+
+/* Main Content Area */
+.main-content {
+  @apply flex-1 flex items-center justify-center p-8;
+  background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.1) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+
+/* Grid Viewport */
+.grid-viewport {
+  @apply relative bg-slate-800 rounded-2xl p-8 shadow-2xl;
+  @apply ring-1 ring-white/10;
+}
+
+.grid-container {
+  @apply relative inline-block;
+}
+
+/* Grid Cells */
+.grid-cell {
+  @apply absolute bg-white rounded-lg transition-all duration-150;
+  @apply border border-slate-200 shadow-md hover:shadow-lg;
+  width: var(--grid-size);
+  height: var(--grid-size);
+}
+
+.grid-cell:hover {
+  @apply transform scale-105 shadow-xl ring-2 ring-indigo-300;
+  z-index: 10;
+}
+
+.grid-cell.blocked {
+  @apply bg-red-900 border-red-700;
+  box-shadow: 0 0 15px rgb(239 68 68 / 0.4);
+}
+
+.grid-cell.blocked:hover {
+  @apply ring-red-400;
+}
+
+.cell-click-area {
+  @apply absolute inset-2 rounded-md flex items-center justify-center;
+  @apply transition-all duration-150 cursor-pointer;
+}
+
+.cell-click-area:hover {
+  @apply bg-indigo-50 ring-2 ring-indigo-200;
+}
+
+/* Walls */
+.wall {
+  @apply absolute bg-slate-400 transition-all duration-150 cursor-pointer;
+  @apply hover:bg-indigo-400;
+  border-radius: 4px;
+}
+
+.wall.active {
+  @apply bg-indigo-600;
+  box-shadow: var(--glow-indigo);
+}
+
+.wall.active:hover {
+  @apply bg-indigo-500;
+}
+
+.wall-horizontal {
+  width: var(--grid-size);
+  height: var(--wall-thickness);
+}
+
+.wall-vertical {
+  width: var(--wall-thickness);
+  height: var(--grid-size);
+}
+
+/* Origin Indicator */
+.origin {
+  @apply absolute inset-0 flex items-center justify-center pointer-events-none;
+  @apply z-20;
+}
+
+.origin-arrow {
+  @apply text-2xl text-emerald-500 font-bold;
+  filter: drop-shadow(0 0 8px rgb(16 185 129 / 0.8));
+  animation: pulse-glow 1s ease-in-out infinite;
+}
+
+/* Status Bar */
+.status-bar {
+  @apply bg-slate-900 border-t border-slate-700 px-6 py-3;
+  @apply flex items-center gap-4;
+}
+
+.status-label {
+  @apply text-xs font-medium text-slate-400 uppercase tracking-wide;
+}
+
+.status-url {
+  @apply flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2;
+  @apply text-sm text-slate-300 font-mono;
+}
+
+/* Animations */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: var(--glow-emerald);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgb(16 185 129 / 0.8);
+    transform: scale(1.1);
+  }
+}
+
+@keyframes float-up {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-float-up {
+  animation: float-up 0.3s ease-out;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  :root {
+    --grid-size: 48px;
+    --wall-thickness: 6px;
+  }
+  
+  .toolbar {
+    @apply flex-col items-start gap-4;
+  }
+  
+  .main-content {
+    @apply p-4;
+  }
+  
+  .grid-viewport {
+    @apply p-4;
+  }
+}
+
+/* Utility Classes */
+.glass-panel {
+  @apply bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
