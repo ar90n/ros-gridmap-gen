@@ -4,8 +4,12 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 
 export default defineConfig({
   plugins: [svelte()],
-  base: process.env.NODE_ENV === 'production' ? '/ros-gridmap-gen/' : '/',
+  base: './',
+  root: process.cwd(),
   build: {
+    rollupOptions: {
+      input: './index.html'
+    },
     outDir: 'dist',
     assetsDir: 'assets'
   },
