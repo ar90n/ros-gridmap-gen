@@ -167,7 +167,25 @@ free_thresh: 0.196
 `;
 }
 
-// Helper function for SDF box model
+// Helper function for SDF box model (walls - white color)
+function modelWall(name: string, pose: string, size: string): string {
+  return `    <model name="${name}" static="true">
+      <pose>${pose}</pose>
+      <link name="link">
+        <collision name="col"><geometry><box><size>${size}</size></box></geometry></collision>
+        <visual name="vis">
+          <geometry><box><size>${size}</size></box></geometry>
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <specular>0.5 0.5 0.5 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>`;
+}
+
+// Helper function for SDF box model (floor - default gray)
 function modelBox(name: string, pose: string, size: string): string {
   return `    <model name="${name}" static="true">
       <pose>${pose}</pose>
@@ -178,11 +196,102 @@ function modelBox(name: string, pose: string, size: string): string {
     </model>`;
 }
 
+// Wall segment for merging
+interface WallSegment {
+  type: 'horizontal' | 'vertical';
+  x: number;
+  y: number;
+  length: number;
+  thickness: number;
+  height: number;
+}
+
+// Pure function to merge continuous walls
+function mergeWalls(state: State, thickness: number, height: number): WallSegment[] {
+  const segments: WallSegment[] = [];
+  const cellSize = state.cellSizeM;
+  const oxC = (state.origin.col + 0.5) * cellSize;
+  const oyC = (state.origin.row + 0.5) * cellSize;
+  
+  // Process horizontal walls - merge continuous segments
+  for (let r = 0; r <= state.rows; r++) {
+    let segmentStart = -1;
+    for (let c = 0; c <= state.cols; c++) {
+      if (c < state.cols && state.hEdges[r][c]) {
+        if (segmentStart === -1) segmentStart = c;
+      } else if (segmentStart !== -1) {
+        // End of segment - align with cell boundaries
+        const length = (c - segmentStart) * cellSize;
+        const x = (segmentStart + (c - segmentStart) / 2) * cellSize - oxC;
+        const y = r * cellSize - oyC; // Wall center at exact cell boundary
+        segments.push({
+          type: 'horizontal',
+          x, y,
+          length,
+          thickness,
+          height
+        });
+        segmentStart = -1;
+      }
+    }
+    // Handle segment that extends to the end
+    if (segmentStart !== -1) {
+      const length = (state.cols - segmentStart) * cellSize;
+      const x = (segmentStart + (state.cols - segmentStart) / 2) * cellSize - oxC;
+      const y = r * cellSize - oyC;
+      segments.push({
+        type: 'horizontal',
+        x, y,
+        length,
+        thickness,
+        height
+      });
+    }
+  }
+  
+  // Process vertical walls - merge continuous segments
+  for (let xIdx = 0; xIdx <= state.cols; xIdx++) {
+    let segmentStart = -1;
+    for (let r = 0; r <= state.rows; r++) {
+      if (r < state.rows && state.vEdges[xIdx][r]) {
+        if (segmentStart === -1) segmentStart = r;
+      } else if (segmentStart !== -1) {
+        // End of segment - align with cell boundaries
+        const length = (r - segmentStart) * cellSize;
+        const x = xIdx * cellSize - oxC; // Wall center at exact cell boundary
+        const y = (segmentStart + (r - segmentStart) / 2) * cellSize - oyC;
+        segments.push({
+          type: 'vertical',
+          x, y,
+          length,
+          thickness,
+          height
+        });
+        segmentStart = -1;
+      }
+    }
+    // Handle segment that extends to the end
+    if (segmentStart !== -1) {
+      const length = (state.rows - segmentStart) * cellSize;
+      const x = xIdx * cellSize - oxC;
+      const y = (segmentStart + (state.rows - segmentStart) / 2) * cellSize - oyC;
+      segments.push({
+        type: 'vertical',
+        x, y,
+        length,
+        thickness,
+        height
+      });
+    }
+  }
+  
+  return segments;
+}
+
 // Pure function to build SDF world
-export function buildSdfWorld(state: State, wallHeight: number = 0.5): string {
-  const res = state.cellSizeM / state.pixelsPerCell;
-  const thickness = Math.max(0.05, state.wallThicknessPx * res);
+export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickness: number = 0.03): string {
   const height = wallHeight; // m
+  const thickness = wallThickness; // m (use user-specified thickness)
   const oxC = (state.origin.col + 0.5) * state.cellSizeM;
   const oyC = (state.origin.row + 0.5) * state.cellSizeM;
   const yaw90 = Math.PI / 2;
@@ -190,37 +299,26 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5): string {
   const out: string[] = [];
   out.push('<sdf version="1.7">');
   out.push('  <world name="map_world">');
+  
+  // Always include default ground plane
   out.push('    <include><uri>model://ground_plane</uri></include>');
   
-  // Add horizontal walls
-  for (let r = 0; r <= state.rows; r++) {
-    for (let c = 0; c < state.cols; c++) {
-      if (state.hEdges[r][c]) {
-        const x = (c + 0.5) * state.cellSizeM - oxC;
-        const y = r * state.cellSizeM - oyC;
-        out.push(modelBox(
-          `wall_h_${r}_${c}`,
-          `${x} ${y} ${height / 2} 0 0 0`,
-          `${state.cellSizeM} ${thickness} ${height}`
-        ));
-      }
-    }
-  }
+  // Get merged wall segments
+  const wallSegments = mergeWalls(state, thickness, height);
   
-  // Add vertical walls
-  for (let xIdx = 0; xIdx <= state.cols; xIdx++) {
-    for (let r = 0; r < state.rows; r++) {
-      if (state.vEdges[xIdx][r]) {
-        const x = xIdx * state.cellSizeM - oxC;
-        const y = (r + 0.5) * state.cellSizeM - oyC;
-        out.push(modelBox(
-          `wall_v_${xIdx}_${r}`,
-          `${x} ${y} ${height / 2} 0 0 ${yaw90}`,
-          `${state.cellSizeM} ${thickness} ${height}`
-        ));
-      }
-    }
-  }
+  // Add merged wall segments
+  wallSegments.forEach((segment, index) => {
+    const yaw = segment.type === 'vertical' ? yaw90 : 0;
+    const size = segment.type === 'horizontal' 
+      ? `${segment.length} ${segment.thickness} ${segment.height}`
+      : `${segment.thickness} ${segment.length} ${segment.height}`;
+    
+    out.push(modelWall(
+      `wall_${segment.type}_${index}`,
+      `${segment.x} ${segment.y} ${segment.height / 2} 0 0 ${yaw}`,
+      size
+    ));
+  });
   
   out.push('  </world>');
   out.push('</sdf>');

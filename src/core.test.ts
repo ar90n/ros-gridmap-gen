@@ -163,8 +163,8 @@ describe('Core Business Logic', () => {
       
       const sdf = buildSdfWorld(state);
       
-      expect(sdf).toContain('wall_h_1_0');
-      expect(sdf).toContain('wall_v_1_0');
+      expect(sdf).toContain('wall_horizontal_0');
+      expect(sdf).toContain('wall_vertical_');
       expect(sdf).toContain('<model name=');
       expect(sdf).toContain('static="true"');
     });
@@ -176,7 +176,7 @@ describe('Core Business Logic', () => {
       
       const sdf = buildSdfWorld(state);
       
-      expect(sdf).toContain('wall_h_1_1');
+      expect(sdf).toContain('wall_horizontal_0');
       expect(sdf).toContain('<pose>');
     });
 
@@ -185,10 +185,9 @@ describe('Core Business Logic', () => {
       state.cellSizeM = 1.0;
       state.hEdges[0][0] = true;
       
-      const sdf = buildSdfWorld(state);
-      const thickness = Math.max(0.05, 3 * (1.0 / 16));
+      const sdf = buildSdfWorld(state, 0.5, 0.2); // Custom thickness 0.2
       
-      expect(sdf).toContain(`${thickness}`);
+      expect(sdf).toContain('0.2'); // Check for custom thickness
     });
   });
 });
