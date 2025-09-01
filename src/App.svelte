@@ -6,11 +6,12 @@
   let ros2 = true;
   let sdf = true;
   let wallHeight = 0.5;
+  let wallThickness = 0.03;
   
   const gridSizes = [2, 3, 4, 5, 6, 7, 8, 9, 10];
   
   const onExport = async () => {
-    await exportAll($state, { ros1, ros2, sdf, wallHeight });
+    await exportAll($state, { ros1, ros2, sdf, wallHeight, wallThickness });
   };
   
   // Calculate grid layout
@@ -70,11 +71,30 @@
     <div class="tool-group">
       <label class="tool-label">Cell Size</label>
       <input 
-        class="control-input"
-        type="number" 
-        step="0.01" 
+        class="control-input w-16"
+        type="text" 
         bind:value={$state.cellSizeM}
         on:change={(e) => setCellSize(parseFloat(e.currentTarget.value))}
+      />
+      <span class="text-slate-400">m</span>
+    </div>
+
+    <div class="tool-group">
+      <label class="tool-label">Wall Height</label>
+      <input 
+        class="control-input w-16" 
+        type="text" 
+        bind:value={wallHeight}
+      />
+      <span class="text-slate-400">m</span>
+    </div>
+
+    <div class="tool-group">
+      <label class="tool-label">Wall Thickness</label>
+      <input 
+        class="control-input w-16" 
+        type="text" 
+        bind:value={wallThickness}
       />
       <span class="text-slate-400">m</span>
     </div>
@@ -93,19 +113,6 @@
         <input class="control-checkbox" type="checkbox" bind:checked={sdf} />
         SDF
       </label>
-      <div class="flex items-center gap-2 text-slate-300" class:opacity-50={!sdf}>
-        <label class="text-xs">Wall Height</label>
-        <input 
-          class="control-input w-16 text-xs" 
-          type="number" 
-          step="0.1" 
-          min="0.1"
-          max="10"
-          bind:value={wallHeight}
-          disabled={!sdf}
-        />
-        <span class="text-xs text-slate-400">m</span>
-      </div>
     </div>
 
     <div class="tool-group ml-auto">
