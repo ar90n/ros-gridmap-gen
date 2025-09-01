@@ -178,7 +178,8 @@ function modelWall(name: string, pose: string, size: string): string {
           <material>
             <ambient>1 1 1 1</ambient>
             <diffuse>1 1 1 1</diffuse>
-            <specular>0.5 0.5 0.5 1</specular>
+            <specular>1 1 1 1</specular>
+            <emissive>0 0 0 1</emissive>
           </material>
         </visual>
       </link>
@@ -220,10 +221,17 @@ function mergeWalls(state: State, thickness: number, height: number): WallSegmen
       if (c < state.cols && state.hEdges[r][c]) {
         if (segmentStart === -1) segmentStart = c;
       } else if (segmentStart !== -1) {
-        // End of segment - align with cell boundaries
-        const length = (c - segmentStart) * cellSize;
-        const x = (segmentStart + (c - segmentStart) / 2) * cellSize - oxC;
-        const y = r * cellSize - oyC; // Wall center at exact cell boundary
+        // End of segment - create wall with accurate endpoints and thickness margin
+        const segmentEnd = c - 1; // Last column index in segment
+        const baseLength = (segmentEnd - segmentStart + 1) * cellSize; // Exact segment length
+        const length = baseLength + thickness; // Add thickness margin (thickness/2 * 2)
+        
+        // Position: center between segment start and end cells
+        const startX = segmentStart * cellSize;
+        const endX = (segmentEnd + 1) * cellSize;
+        const x = (startX + endX) / 2 - oxC; // Center of segment span
+        const y = r * cellSize - oyC; // Wall at row boundary
+        
         segments.push({
           type: 'horizontal',
           x, y,
@@ -236,9 +244,15 @@ function mergeWalls(state: State, thickness: number, height: number): WallSegmen
     }
     // Handle segment that extends to the end
     if (segmentStart !== -1) {
-      const length = (state.cols - segmentStart) * cellSize;
-      const x = (segmentStart + (state.cols - segmentStart) / 2) * cellSize - oxC;
+      const segmentEnd = state.cols - 1; // Last column index
+      const baseLength = (segmentEnd - segmentStart + 1) * cellSize;
+      const length = baseLength + thickness; // Add thickness margin
+      
+      const startX = segmentStart * cellSize;
+      const endX = (segmentEnd + 1) * cellSize;
+      const x = (startX + endX) / 2 - oxC;
       const y = r * cellSize - oyC;
+      
       segments.push({
         type: 'horizontal',
         x, y,
@@ -256,10 +270,17 @@ function mergeWalls(state: State, thickness: number, height: number): WallSegmen
       if (r < state.rows && state.vEdges[xIdx][r]) {
         if (segmentStart === -1) segmentStart = r;
       } else if (segmentStart !== -1) {
-        // End of segment - align with cell boundaries
-        const length = (r - segmentStart) * cellSize;
-        const x = xIdx * cellSize - oxC; // Wall center at exact cell boundary
-        const y = (segmentStart + (r - segmentStart) / 2) * cellSize - oyC;
+        // End of segment - create wall with accurate endpoints and thickness margin
+        const segmentEnd = r - 1; // Last row index in segment
+        const baseLength = (segmentEnd - segmentStart + 1) * cellSize; // Exact segment length
+        const length = baseLength + thickness; // Add thickness margin (thickness/2 * 2)
+        
+        // Position: center between segment start and end cells
+        const startY = segmentStart * cellSize;
+        const endY = (segmentEnd + 1) * cellSize;
+        const x = xIdx * cellSize - oxC; // Wall at column boundary
+        const y = (startY + endY) / 2 - oyC; // Center of segment span
+        
         segments.push({
           type: 'vertical',
           x, y,
@@ -272,9 +293,15 @@ function mergeWalls(state: State, thickness: number, height: number): WallSegmen
     }
     // Handle segment that extends to the end
     if (segmentStart !== -1) {
-      const length = (state.rows - segmentStart) * cellSize;
+      const segmentEnd = state.rows - 1; // Last row index
+      const baseLength = (segmentEnd - segmentStart + 1) * cellSize;
+      const length = baseLength + thickness; // Add thickness margin
+      
+      const startY = segmentStart * cellSize;
+      const endY = (segmentEnd + 1) * cellSize;
       const x = xIdx * cellSize - oxC;
-      const y = (segmentStart + (state.rows - segmentStart) / 2) * cellSize - oyC;
+      const y = (startY + endY) / 2 - oyC;
+      
       segments.push({
         type: 'vertical',
         x, y,
@@ -308,10 +335,17 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   
   // Add merged wall segments
   wallSegments.forEach((segment, index) => {
-    const yaw = segment.type === 'vertical' ? yaw90 : 0;
-    const size = segment.type === 'horizontal' 
-      ? `${segment.length} ${segment.thickness} ${segment.height}`
-      : `${segment.thickness} ${segment.length} ${segment.height}`;
+    let yaw, size;
+    
+    if (segment.type === 'horizontal') {
+      // Horizontal walls: extend along X-axis, thin along Y-axis
+      yaw = 0; // No rotation needed
+      size = `${segment.length} ${segment.thickness} ${segment.height}`;
+    } else {
+      // Vertical walls: extend along Y-axis, thin along X-axis  
+      yaw = 0; // No rotation - use size to define orientation
+      size = `${segment.thickness} ${segment.length} ${segment.height}`;
+    }
     
     out.push(modelWall(
       `wall_${segment.type}_${index}`,
