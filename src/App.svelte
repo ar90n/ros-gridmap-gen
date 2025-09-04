@@ -441,10 +441,15 @@
   }
   
   .github-link {
-    @apply flex items-center justify-center w-8 h-8 text-slate-600 hover:text-slate-800 transition-colors duration-200;
+    @apply flex items-center justify-center w-8 h-8;
+    @apply text-slate-600;
+    @apply transition-colors duration-200;
+    color: rgb(71 85 105); /* slate-600 */
+    transition: color 0.2s ease, transform 0.2s ease;
   }
   
   .github-link:hover {
+    color: rgb(30 41 59); /* slate-800 */
     transform: scale(1.1);
   }
   

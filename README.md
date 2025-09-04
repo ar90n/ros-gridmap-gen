@@ -1,5 +1,9 @@
 # ROS GridMap Generator
 
+[![CI](https://github.com/ar90n/ros-gridmap-gen/actions/workflows/ci.yml/badge.svg)](https://github.com/ar90n/ros-gridmap-gen/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+![Built with vibe coding](https://img.shields.io/badge/built%20with-vibe%20coding-ff69b4)
+
 A browser-based tool for creating and editing ROS occupancy grid maps (PGM + YAML) and Gazebo SDF world files.
 
 ## 🚀 Demo
