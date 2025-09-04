@@ -9,7 +9,7 @@ describe('Wall Merging', () => {
     state.hEdges[1][1] = true;
     state.hEdges[1][2] = true;
     
-    const sdf = buildSdfWorld(state, 0.5, 0.1, false);
+    const sdf = buildSdfWorld(state, 0.5, 0.1);
     
     // Should contain single merged wall instead of 3 separate walls
     expect(sdf).toContain('wall_horizontal_0');
@@ -25,7 +25,7 @@ describe('Wall Merging', () => {
     state.vEdges[1][1] = true;
     state.vEdges[1][2] = true;
     
-    const sdf = buildSdfWorld(state, 0.5, 0.1, false);
+    const sdf = buildSdfWorld(state, 0.5, 0.1);
     
     // Should contain single merged wall instead of 3 separate walls
     expect(sdf).toContain('wall_vertical_0');
