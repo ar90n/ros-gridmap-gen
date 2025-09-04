@@ -17,10 +17,14 @@ describe('Core Business Logic', () => {
       expect(state.rows).toBe(5);
       expect(state.cols).toBe(5);
       expect(state.cellSizeM).toBe(0.5);
-      expect(state.pixelsPerCell).toBe(16);
-      expect(state.wallThicknessPx).toBe(3);
+      expect(state.resolution).toBe(0.03125); // 0.5m / 16px
+      expect(state.wallThicknessM).toBe(0.03); // 30mm default
       expect(state.hEdges).toHaveLength(6); // rows + 1
       expect(state.vEdges).toHaveLength(6); // cols + 1
+      expect(state.cellCostPalette).toEqual([0, 30, 80, 150]);
+      expect(state.selectedPaletteIndex).toBe(0);
+      expect(state.cellCostIndices).toHaveLength(5); // rows
+      expect(state.cellCostIndices[0]).toHaveLength(5); // cols
       expect(state.origin).toEqual({ row: 4, col: 4, thetaDeg: 0 });
     });
 
@@ -119,13 +123,13 @@ describe('Core Business Logic', () => {
       expect(yaml).toContain('free_thresh: 0.196');
     });
 
-    it('should calculate correct resolution', () => {
+    it('should use configured resolution', () => {
       const state = makeDefaultState(5, 5);
       state.cellSizeM = 1.0;
+      state.resolution = 0.0625; // Set resolution explicitly
       const yaml = buildYamlROS1(state);
-      const resolution = 1.0 / 16;
       
-      expect(yaml).toContain(`resolution: ${resolution}`);
+      expect(yaml).toContain(`resolution: 0.0625`);
     });
   });
 
