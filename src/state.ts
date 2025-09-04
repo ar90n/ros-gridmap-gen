@@ -1,12 +1,13 @@
 import { writable } from 'svelte/store';
 import JSONCrush from 'jsoncrush';
-import { makeDefaultState, type State, type Deg } from './core';
+import { makeDefaultState, migrateState, type State, type Deg } from './core';
 
 // URL encoding/decoding functions
 const encode = (s: State) => encodeURIComponent(JSONCrush.crush(JSON.stringify(s)));
 const decode = (q: string): State | null => {
   try {
-    return JSON.parse(JSONCrush.uncrush(decodeURIComponent(q)));
+    const parsed = JSON.parse(JSONCrush.uncrush(decodeURIComponent(q)));
+    return migrateState(parsed);
   } catch {
     return null;
   }
@@ -45,20 +46,34 @@ export function setCellSize(m: number) {
   }));
 }
 
+export function setResolution(res: number) {
+  state.update(s => ({
+    ...s,
+    resolution: Math.max(0.001, res || 0.03125)
+  }));
+}
+
+export function setWallThicknessM(m: number) {
+  state.update(s => ({
+    ...s,
+    wallThicknessM: Math.max(0.001, m || 0.03)
+  }));
+}
+
 export function clickCell(rDom: number, c: number) {
   state.update(s => {
     const rB = s.rows - 1 - rDom; // Convert DOM row to bottom-up row
     
-    // Cannot block the origin cell
-    if (s.origin.row === rB && s.origin.col === c) {
-      return s; // No change
-    }
+    // Apply selected palette index to cell, or cycle to next palette if already selected
+    // This now works for all cells including origin
+    const cellCostIndices = s.cellCostIndices.map(row => row.slice());
+    const currentIndex = cellCostIndices[rB][c];
+    const newIndex = currentIndex === s.selectedPaletteIndex 
+      ? (s.selectedPaletteIndex + 1) % 4  // Cycle to next palette (0->1->2->3->0)
+      : s.selectedPaletteIndex;
+    cellCostIndices[rB][c] = newIndex;
     
-    // Toggle blocked state for this cell
-    const blockedCells = s.blockedCells.map(row => row.slice());
-    blockedCells[rB][c] = !blockedCells[rB][c];
-    
-    return { ...s, blockedCells };
+    return { ...s, cellCostIndices };
   });
 }
 
@@ -76,14 +91,10 @@ export function setOrigin(rDom: number, c: number) {
     }
     
     // Different cell clicked - move origin and reset theta to 0
-    // Also unblock this cell if it was blocked
-    const blockedCells = s.blockedCells.map(row => row.slice());
-    blockedCells[rB][c] = false;
-    
+    // Keep the existing cell cost value unchanged
     return {
       ...s,
-      origin: { row: rB, col: c, thetaDeg: 0 },
-      blockedCells
+      origin: { row: rB, col: c, thetaDeg: 0 }
     };
   });
 }
@@ -109,5 +120,21 @@ export function toggleEdge(kind: 'top' | 'bottom' | 'left' | 'right', rDom: numb
       vEdges[c + 1][rB] = !vEdges[c + 1][rB];
       return { ...s, vEdges };
     }
+  });
+}
+
+// New functions for palette management
+export function selectPaletteIndex(index: number) {
+  state.update(s => ({
+    ...s,
+    selectedPaletteIndex: Math.max(0, Math.min(3, index))
+  }));
+}
+
+export function updatePaletteValue(index: number, value: number) {
+  state.update(s => {
+    const cellCostPalette = [...s.cellCostPalette] as [number, number, number, number];
+    cellCostPalette[index] = Math.max(0, Math.min(254, value));
+    return { ...s, cellCostPalette };
   });
 }

@@ -4,16 +4,24 @@
 export type Deg = 0 | 90 | 180 | 270;
 
 export interface State {
-  version: 3;
+  version: 4;
   rows: number;
   cols: number;
   cellSizeM: number;
-  pixelsPerCell: 16;
-  wallThicknessPx: 3;
+  resolution: number; // meters per pixel
+  wallThicknessM: number; // configurable wall thickness in meters
   hEdges: boolean[][];
   vEdges: boolean[][];
-  blockedCells: boolean[][];
+  // Cost palette system
+  cellCostPalette: [number, number, number, number]; // 4 cost values (0-254)
+  cellCostIndices: (number | null)[][]; // Each cell references palette index (0-3) or null
+  selectedPaletteIndex: number; // Currently selected palette index (0-3)
   origin: { row: number; col: number; thetaDeg: Deg };
+  
+  // Legacy fields for backward compatibility
+  pixelsPerCell?: 16;
+  wallThicknessPx?: number;
+  blockedCells?: boolean[][];
 }
 
 // Pure function to create default state
@@ -24,36 +32,70 @@ export function makeDefaultState(rows: number, cols: number): State {
   const vEdges = Array.from({ length: cols + 1 }, () => 
     Array(rows).fill(false)
   );
-  const blockedCells = Array.from({ length: rows }, () => 
-    Array(cols).fill(false)
+  const cellCostIndices = Array.from({ length: rows }, () => 
+    Array(cols).fill(0)  // Initialize all cells with palette index 0 (first palette)
   );
   
   return {
-    version: 3,
+    version: 4,
     rows,
     cols,
     cellSizeM: 0.5,
-    pixelsPerCell: 16,
-    wallThicknessPx: 3,
+    resolution: 0.03125, // default: 0.5m / 16px = 0.03125 m/px
+    wallThicknessM: 0.03, // 30mm default
     hEdges,
     vEdges,
-    blockedCells,
+    cellCostPalette: [0, 30, 80, 150], // Low cost (free), Medium low, Medium high, High cost
+    cellCostIndices,
+    selectedPaletteIndex: 0,
     origin: { row: rows - 1, col: cols - 1, thetaDeg: 0 }
   };
 }
 
+// Migration function for legacy states
+export function migrateState(state: any): State {
+  // Handle version 3 → 4 migration
+  if (state.version === 3 && state.blockedCells) {
+    const cellCostIndices = Array.from({ length: state.rows }, (_, r) => 
+      Array.from({ length: state.cols }, (_, c) => 
+        state.blockedCells[r][c] ? 3 : null // blocked → index 3 (occupied)
+      )
+    );
+    
+    return {
+      ...state,
+      version: 4,
+      cellCostPalette: [254, 200, 100, 0],
+      cellCostIndices,
+      selectedPaletteIndex: 0,
+      resolution: state.cellSizeM / (state.pixelsPerCell || 16),
+      wallThicknessM: state.wallThicknessM || (state.wallThicknessPx || 3) * (state.cellSizeM / (state.pixelsPerCell || 16))
+    };
+  }
+  
+  // Handle missing fields in current version 4 states
+  if (state.version === 4) {
+    return {
+      ...state,
+      resolution: state.resolution || (state.cellSizeM / (state.pixelsPerCell || 16)),
+      wallThicknessM: state.wallThicknessM || (state.wallThicknessPx || 3) * (state.resolution || (state.cellSizeM / (state.pixelsPerCell || 16)))
+    };
+  }
+  
+  return state;
+}
+
 // Pure function to compute origin transformation
 export function computeOrigin(state: State): { ox: number; oy: number; theta: number } {
-  const ppc = state.pixelsPerCell;
-  const res = state.cellSizeM / ppc;
+  const ppc = state.cellSizeM / state.resolution;
   const px = state.origin.col * ppc + ppc / 2;
   const py = state.origin.row * ppc + ppc / 2;
   const rad = (state.origin.thetaDeg * Math.PI) / 180;
   const cos = Math.cos(rad);
   const sin = Math.sin(rad);
   
-  const ox = -(cos * px - sin * py) * res;
-  const oy = -(sin * px + cos * py) * res;
+  const ox = -(cos * px - sin * py) * state.resolution;
+  const oy = -(sin * px + cos * py) * state.resolution;
   
   return { ox, oy, theta: rad };
 }
@@ -61,7 +103,7 @@ export function computeOrigin(state: State): { ox: number; oy: number; theta: nu
 // Pure function to build PGM image data
 export function buildPGM(state: State): Blob {
   const borderSize = 2; // 境界の厚さ（セル単位）
-  const cellPx = state.pixelsPerCell;
+  const cellPx = state.cellSizeM / state.resolution;
   const W = (state.cols + 2 * borderSize) * cellPx;
   const H = (state.rows + 2 * borderSize) * cellPx;
   const free = 254;      // Free space (white-ish)
@@ -79,19 +121,21 @@ export function buildPGM(state: State): Blob {
       // Y軸反転: PGM画像のY座標を反転させる
       const startY = ((state.rows - 1 - r) + borderSize) * cellPx;
       
-      // セルが侵入不可でなければ自由空間に
-      if (!state.blockedCells[r][c]) {
-        for (let y = startY; y < startY + cellPx; y++) {
-          for (let x = startX; x < startX + cellPx; x++) {
-            buf[y * W + x] = free;
-          }
+      // セルのコスト値を取得（パレットインデックスから）
+      const costIndex = state.cellCostIndices[r][c];
+      const costValue = costIndex !== null ? state.cellCostPalette[costIndex] : 0; // Default to cost 0 (free)
+      // Convert cost to PGM pixel: cost 0 (free) -> PGM 254 (white), cost 254 (occupied) -> PGM 0 (black)
+      const cellCost = 254 - costValue;
+      
+      for (let y = startY; y < startY + cellPx; y++) {
+        for (let x = startX; x < startX + cellPx; x++) {
+          buf[y * W + x] = cellCost;
         }
       }
     }
   }
   
-  const t = state.wallThicknessPx;
-  const half = Math.floor((t - 1) / 2);
+  const wallThicknessPx = state.wallThicknessM / state.resolution;
   
   // Draw horizontal edges (walls between rows)
   for (let r = 0; r <= state.rows; r++) {
@@ -99,10 +143,15 @@ export function buildPGM(state: State): Blob {
       if (state.hEdges[r][c]) {
         // Center the wall on the edge between cells
         // hEdges[r]のrはすでに上から下のインデックスなので反転なし
-        const y0 = (r + borderSize) * cellPx;
+        const y0 = (r + borderSize) * cellPx; // Wall center position
         const x0 = (c + borderSize) * cellPx;
-        for (let dy = -half; dy <= half; dy++) {
-          const y = y0 + dy;
+        
+        // Calculate exact wall boundaries and expand fractional pixels
+        const wallHalfThickness = wallThicknessPx / 2;
+        const yStart = Math.floor(y0 - wallHalfThickness);
+        const yEnd = Math.ceil(y0 + wallHalfThickness);
+        
+        for (let y = yStart; y < yEnd; y++) {
           if (y < 0 || y >= H) continue;
           for (let x = x0; x < x0 + cellPx; x++) {
             buf[y * W + x] = occ;
@@ -117,11 +166,16 @@ export function buildPGM(state: State): Blob {
     for (let r = 0; r < state.rows; r++) {
       if (state.vEdges[xIdx][r]) {
         // Center the wall on the edge between cells
-        const x0 = (xIdx + borderSize) * cellPx;
+        const x0 = (xIdx + borderSize) * cellPx; // Wall center position
         // vEdges[xIdx][r]のrもすでに上から下のインデックスなので反転なし
         const y0 = (r + borderSize) * cellPx;
-        for (let dx = -half; dx <= half; dx++) {
-          const x = x0 + dx;
+        
+        // Calculate exact wall boundaries and expand fractional pixels
+        const wallHalfThickness = wallThicknessPx / 2;
+        const xStart = Math.floor(x0 - wallHalfThickness);
+        const xEnd = Math.ceil(x0 + wallHalfThickness);
+        
+        for (let x = xStart; x < xEnd; x++) {
           if (x < 0 || x >= W) continue;
           for (let y = y0; y < y0 + cellPx; y++) {
             buf[y * W + x] = occ;
@@ -141,11 +195,10 @@ export function buildPGM(state: State): Blob {
 // Pure function to build ROS2 YAML
 export function buildYamlROS2(state: State): string {
   const { ox, oy, theta } = computeOrigin(state);
-  const res = state.cellSizeM / state.pixelsPerCell;
   
   return `image: map.pgm
 mode: trinary
-resolution: ${res}
+resolution: ${state.resolution}
 origin: [${ox}, ${oy}, ${theta}]
 negate: false
 occupied_thresh: 0.65
@@ -156,10 +209,9 @@ free_thresh: 0.25
 // Pure function to build ROS1 YAML
 export function buildYamlROS1(state: State): string {
   const { ox, oy, theta } = computeOrigin(state);
-  const res = state.cellSizeM / state.pixelsPerCell;
   
   return `image: map.pgm
-resolution: ${res}
+resolution: ${state.resolution}
 origin: [${ox}, ${oy}, ${theta}]
 negate: 0
 occupied_thresh: 0.65

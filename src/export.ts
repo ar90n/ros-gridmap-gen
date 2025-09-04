@@ -38,7 +38,7 @@ async function downloadBlobWithDialog(blob: Blob, name: string) {
 
 
 // Main export function - now creates a ZIP file
-export async function exportAll(state: State, opts: { ros1: boolean; ros2: boolean; sdf: boolean; wallHeight: number; wallThickness: number }) {
+export async function exportAll(state: State, opts: { ros1: boolean; ros2: boolean; sdf: boolean; wallHeight: number }) {
   const zip = new JSZip();
   
   // Always export PGM
@@ -55,7 +55,7 @@ export async function exportAll(state: State, opts: { ros1: boolean; ros2: boole
   
   // Export SDF world based on option
   if (opts.sdf) {
-    zip.file('world.sdf', buildSdfWorld(state, opts.wallHeight, opts.wallThickness));
+    zip.file('world.sdf', buildSdfWorld(state, opts.wallHeight, state.wallThicknessM));
   }
   
   // Generate and download ZIP file
