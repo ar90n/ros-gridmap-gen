@@ -264,7 +264,7 @@ function mergeWalls(state: State, thickness: number, height: number): WallSegmen
   const segments: WallSegment[] = [];
   const cellSize = state.cellSizeM;
   const oxC = (state.origin.col + 0.5) * cellSize;
-  const oyC = (state.origin.row + 0.5) * cellSize;
+  const oyC = ((state.rows - 1 - state.origin.row) + 0.5) * cellSize;
   
   // Process horizontal walls - merge continuous segments
   for (let r = 0; r <= state.rows; r++) {
@@ -282,7 +282,7 @@ function mergeWalls(state: State, thickness: number, height: number): WallSegmen
         const startX = segmentStart * cellSize;
         const endX = (segmentEnd + 1) * cellSize;
         const x = (startX + endX) / 2 - oxC; // Center of segment span
-        const y = r * cellSize - oyC; // Wall at row boundary
+        const y = (state.rows - r) * cellSize - oyC; // Wall at row boundary (Y-axis inverted)
         
         segments.push({
           type: 'horizontal',
@@ -303,7 +303,7 @@ function mergeWalls(state: State, thickness: number, height: number): WallSegmen
       const startX = segmentStart * cellSize;
       const endX = (segmentEnd + 1) * cellSize;
       const x = (startX + endX) / 2 - oxC;
-      const y = r * cellSize - oyC;
+      const y = (state.rows - r) * cellSize - oyC;
       
       segments.push({
         type: 'horizontal',
@@ -328,10 +328,10 @@ function mergeWalls(state: State, thickness: number, height: number): WallSegmen
         const length = baseLength + thickness; // Add thickness margin (thickness/2 * 2)
         
         // Position: center between segment start and end cells
-        const startY = segmentStart * cellSize;
-        const endY = (segmentEnd + 1) * cellSize;
+        const startY = (state.rows - segmentEnd - 1) * cellSize;
+        const endY = (state.rows - segmentStart) * cellSize;
         const x = xIdx * cellSize - oxC; // Wall at column boundary
-        const y = (startY + endY) / 2 - oyC; // Center of segment span
+        const y = (startY + endY) / 2 - oyC; // Center of segment span (Y-axis inverted)
         
         segments.push({
           type: 'vertical',
@@ -349,8 +349,8 @@ function mergeWalls(state: State, thickness: number, height: number): WallSegmen
       const baseLength = (segmentEnd - segmentStart + 1) * cellSize;
       const length = baseLength + thickness; // Add thickness margin
       
-      const startY = segmentStart * cellSize;
-      const endY = (segmentEnd + 1) * cellSize;
+      const startY = (state.rows - segmentEnd - 1) * cellSize;
+      const endY = (state.rows - segmentStart) * cellSize;
       const x = xIdx * cellSize - oxC;
       const y = (startY + endY) / 2 - oyC;
       
