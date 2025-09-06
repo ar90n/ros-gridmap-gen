@@ -68,9 +68,8 @@ export function clickCell(rDom: number, c: number) {
     // This now works for all cells including origin
     const cellCostIndices = s.cellCostIndices.map(row => row.slice());
     const currentIndex = cellCostIndices[rB][c];
-    const newIndex = currentIndex === s.selectedPaletteIndex 
-      ? (s.selectedPaletteIndex + 1) % 4  // Cycle to next palette (0->1->2->3->0)
-      : s.selectedPaletteIndex;
+    // Always cycle to the next value when clicking a cell
+    const newIndex = (currentIndex + 1) % 4;
     cellCostIndices[rB][c] = newIndex;
     
     return { ...s, cellCostIndices };
