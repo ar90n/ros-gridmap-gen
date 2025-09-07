@@ -69,7 +69,7 @@ export function clickCell(rDom: number, c: number) {
     const cellCostIndices = s.cellCostIndices.map(row => row.slice());
     const currentIndex = cellCostIndices[rB][c];
     // Always cycle to the next value when clicking a cell
-    const newIndex = (currentIndex + 1) % 4;
+    const newIndex = currentIndex === null ? 0 : (currentIndex + 1) % 4;
     cellCostIndices[rB][c] = newIndex;
     
     return { ...s, cellCostIndices };
