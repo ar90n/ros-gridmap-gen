@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Version display now automatically syncs with package.json (was hardcoded v1.0)
+
+### Changed
+- Reset State version from 4 to 1 after removing legacy compatibility code
+- Existing URLs will be invalidated but provides cleaner foundation
+
 ## [0.1.0] - 2025-01-08
 
 ### Added
