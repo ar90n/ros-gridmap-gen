@@ -219,12 +219,32 @@ free_thresh: 0.196
 `;
 }
 
-// Helper function for SDF box model (walls - white color)
+// Helper function for SDF box model (walls - white color with friction)
 function modelWall(name: string, pose: string, size: string): string {
   return `    <model name="${name}" static="true">
       <pose>${pose}</pose>
       <link name="link">
-        <collision name="col"><geometry><box><size>${size}</size></box></geometry></collision>
+        <collision name="col">
+          <geometry><box><size>${size}</size></box></geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>1.0</mu>
+                <mu2>1.0</mu2>
+              </ode>
+            </friction>
+            <bounce>
+              <restitution_coefficient>0.0</restitution_coefficient>
+              <threshold>1000.0</threshold>
+            </bounce>
+            <contact>
+              <ode>
+                <kp>10000000.0</kp>
+                <kd>1.0</kd>
+              </ode>
+            </contact>
+          </surface>
+        </collision>
         <visual name="vis">
           <geometry><box><size>${size}</size></box></geometry>
           <material>
@@ -238,13 +258,41 @@ function modelWall(name: string, pose: string, size: string): string {
     </model>`;
 }
 
-// Helper function for SDF box model (floor - default gray)
-function modelBox(name: string, pose: string, size: string): string {
+// Helper function for SDF floor model (gray with friction)
+function modelFloor(name: string, pose: string, size: string): string {
   return `    <model name="${name}" static="true">
       <pose>${pose}</pose>
       <link name="link">
-        <collision name="col"><geometry><box><size>${size}</size></box></geometry></collision>
-        <visual name="vis"><geometry><box><size>${size}</size></box></geometry></visual>
+        <collision name="col">
+          <geometry><box><size>${size}</size></box></geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>0.8</mu>
+                <mu2>0.8</mu2>
+              </ode>
+            </friction>
+            <bounce>
+              <restitution_coefficient>0.1</restitution_coefficient>
+              <threshold>1000.0</threshold>
+            </bounce>
+            <contact>
+              <ode>
+                <kp>10000000.0</kp>
+                <kd>1.0</kd>
+              </ode>
+            </contact>
+          </surface>
+        </collision>
+        <visual name="vis">
+          <geometry><box><size>${size}</size></box></geometry>
+          <material>
+            <ambient>0.5 0.5 0.5 1</ambient>
+            <diffuse>0.5 0.5 0.5 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+            <emissive>0 0 0 1</emissive>
+          </material>
+        </visual>
       </link>
     </model>`;
 }
@@ -371,16 +419,50 @@ function mergeWalls(state: State, thickness: number, height: number): WallSegmen
 export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickness: number = 0.03): string {
   const height = wallHeight; // m
   const thickness = wallThickness; // m (use user-specified thickness)
-  const oxC = (state.origin.col + 0.5) * state.cellSizeM;
-  const oyC = (state.origin.row + 0.5) * state.cellSizeM;
-  const yaw90 = Math.PI / 2;
   
   const out: string[] = [];
   out.push('<sdf version="1.7">');
   out.push('  <world name="map_world">');
   
-  // Always include default ground plane
-  out.push('    <include><uri>model://ground_plane</uri></include>');
+  // Physics settings
+  out.push('    <physics name="default_physics" default="1" type="ode">');
+  out.push('      <gravity>0 0 -9.8066</gravity>');
+  out.push('      <ode>');
+  out.push('        <solver>');
+  out.push('          <type>quick</type>');
+  out.push('          <iters>150</iters>');
+  out.push('          <sor>1.4</sor>');
+  out.push('        </solver>');
+  out.push('        <constraints>');
+  out.push('          <cfm>1e-5</cfm>');
+  out.push('          <erp>0.2</erp>');
+  out.push('          <contact_max_correcting_vel>2000.0</contact_max_correcting_vel>');
+  out.push('          <contact_surface_layer>0.01</contact_surface_layer>');
+  out.push('        </constraints>');
+  out.push('      </ode>');
+  out.push('      <max_step_size>0.004</max_step_size>');
+  out.push('      <real_time_factor>1.0</real_time_factor>');
+  out.push('      <real_time_update_rate>250</real_time_update_rate>');
+  out.push('    </physics>');
+  out.push('');
+  
+  // Ambient lighting only (no shadows for performance)
+  out.push('    <scene>');
+  out.push('      <ambient>0.8 0.8 0.8 1.0</ambient>');
+  out.push('      <background>0.7 0.7 0.7 1.0</background>');
+  out.push('      <shadows>false</shadows>');
+  out.push('    </scene>');
+  out.push('');
+  
+  // Custom floor instead of ground_plane
+  const mapWidth = state.cols * state.cellSizeM;
+  const mapHeight = state.rows * state.cellSizeM;
+  const floorThickness = 0.1; // 10cm thick floor for stability
+  const floorSize = `${mapWidth + 1} ${mapHeight + 1} ${floorThickness}`;
+  const floorPose = `0 0 ${-floorThickness / 2} 0 0 0`; // Floor surface at z=0
+  
+  out.push(modelFloor('custom_floor', floorPose, floorSize));
+  out.push('');
   
   // Get merged wall segments
   const wallSegments = mergeWalls(state, thickness, height);

@@ -155,7 +155,7 @@ describe('Core Business Logic', () => {
       
       expect(sdf).toContain('<sdf version="1.7">');
       expect(sdf).toContain('<world name="map_world">');
-      expect(sdf).toContain('<include><uri>model://ground_plane</uri></include>');
+      expect(sdf).toContain('<model name="custom_floor"');
       expect(sdf).toContain('</world>');
       expect(sdf).toContain('</sdf>');
     });
