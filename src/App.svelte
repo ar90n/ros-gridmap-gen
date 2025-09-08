@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { state, shareUrl, setGrid, setCellSize, setResolution, setWallThicknessM, clickCell, setOrigin, selectPaletteIndex, updatePaletteValue } from './state';
+  import { state, shareUrl, setGrid, setCellSize, setResolution, setWallThicknessM, setFloorFriction, clickCell, setOrigin, selectPaletteIndex, updatePaletteValue } from './state';
   import { exportAll } from './export';
 
   let ros1 = true;
@@ -144,6 +144,17 @@
         on:change={(e) => setWallThicknessM(parseFloat(e.currentTarget.value))}
       />
       <span class="text-slate-400">m</span>
+    </div>
+
+    <div class="tool-group">
+      <label class="tool-label">Floor Friction</label>
+      <input 
+        class="control-input w-16"
+        type="text" 
+        bind:value={$state.floorFriction}
+        on:change={(e) => setFloorFriction(parseFloat(e.currentTarget.value))}
+      />
+      <span class="text-slate-400">μ</span>
     </div>
 
     <div class="tool-group">

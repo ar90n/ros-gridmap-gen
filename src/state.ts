@@ -1,13 +1,13 @@
 import { writable } from 'svelte/store';
 import JSONCrush from 'jsoncrush';
-import { makeDefaultState, migrateState, type State, type Deg } from './core';
+import { makeDefaultState, type State, type Deg } from './core';
 
 // URL encoding/decoding functions
 const encode = (s: State) => encodeURIComponent(JSONCrush.crush(JSON.stringify(s)));
 const decode = (q: string): State | null => {
   try {
     const parsed = JSON.parse(JSONCrush.uncrush(decodeURIComponent(q)));
-    return migrateState(parsed);
+    return parsed.version === 4 ? parsed : null; // Only accept current version
   } catch {
     return null;
   }
@@ -57,6 +57,13 @@ export function setWallThicknessM(m: number) {
   state.update(s => ({
     ...s,
     wallThicknessM: Math.max(0.001, m || 0.03)
+  }));
+}
+
+export function setFloorFriction(friction: number) {
+  state.update(s => ({
+    ...s,
+    floorFriction: Math.max(0.0, friction || 0.8)
   }));
 }
 

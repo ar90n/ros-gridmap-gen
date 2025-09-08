@@ -10,6 +10,7 @@ export interface State {
   cellSizeM: number;
   resolution: number; // meters per pixel
   wallThicknessM: number; // configurable wall thickness in meters
+  floorFriction: number; // friction coefficient for floor (0.0+, typical: 0.8-1.5)
   hEdges: boolean[][];
   vEdges: boolean[][];
   // Cost palette system
@@ -17,11 +18,6 @@ export interface State {
   cellCostIndices: (number | null)[][]; // Each cell references palette index (0-3) or null
   selectedPaletteIndex: number; // Currently selected palette index (0-3)
   origin: { row: number; col: number; thetaDeg: Deg };
-  
-  // Legacy fields for backward compatibility
-  pixelsPerCell?: 16;
-  wallThicknessPx?: number;
-  blockedCells?: boolean[][];
 }
 
 // Pure function to create default state
@@ -43,6 +39,7 @@ export function makeDefaultState(rows: number, cols: number): State {
     cellSizeM: 0.5,
     resolution: 0.03125, // default: 0.5m / 16px = 0.03125 m/px
     wallThicknessM: 0.03, // 30mm default
+    floorFriction: 0.8, // default floor friction coefficient
     hEdges,
     vEdges,
     cellCostPalette: [0, 30, 80, 150], // Low cost (free), Medium low, Medium high, High cost
@@ -52,38 +49,6 @@ export function makeDefaultState(rows: number, cols: number): State {
   };
 }
 
-// Migration function for legacy states
-export function migrateState(state: any): State {
-  // Handle version 3 → 4 migration
-  if (state.version === 3 && state.blockedCells) {
-    const cellCostIndices = Array.from({ length: state.rows }, (_, r) => 
-      Array.from({ length: state.cols }, (_, c) => 
-        state.blockedCells[r][c] ? 3 : null // blocked → index 3 (occupied)
-      )
-    );
-    
-    return {
-      ...state,
-      version: 4,
-      cellCostPalette: [254, 200, 100, 0],
-      cellCostIndices,
-      selectedPaletteIndex: 0,
-      resolution: state.cellSizeM / (state.pixelsPerCell || 16),
-      wallThicknessM: state.wallThicknessM || (state.wallThicknessPx || 3) * (state.cellSizeM / (state.pixelsPerCell || 16))
-    };
-  }
-  
-  // Handle missing fields in current version 4 states
-  if (state.version === 4) {
-    return {
-      ...state,
-      resolution: state.resolution || (state.cellSizeM / (state.pixelsPerCell || 16)),
-      wallThicknessM: state.wallThicknessM || (state.wallThicknessPx || 3) * (state.resolution || (state.cellSizeM / (state.pixelsPerCell || 16)))
-    };
-  }
-  
-  return state;
-}
 
 // Pure function to compute origin transformation
 export function computeOrigin(state: State): { ox: number; oy: number; theta: number } {
@@ -258,8 +223,8 @@ function modelWall(name: string, pose: string, size: string): string {
     </model>`;
 }
 
-// Helper function for SDF floor model (gray with friction)
-function modelFloor(name: string, pose: string, size: string): string {
+// Helper function for SDF floor model (gray with configurable friction)
+function modelFloor(name: string, pose: string, size: string, friction: number = 0.8): string {
   return `    <model name="${name}" static="true">
       <pose>${pose}</pose>
       <link name="link">
@@ -268,8 +233,8 @@ function modelFloor(name: string, pose: string, size: string): string {
           <surface>
             <friction>
               <ode>
-                <mu>0.8</mu>
-                <mu2>0.8</mu2>
+                <mu>${friction}</mu>
+                <mu2>${friction}</mu2>
               </ode>
             </friction>
             <bounce>
@@ -461,7 +426,7 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   const floorSize = `${mapWidth + 1} ${mapHeight + 1} ${floorThickness}`;
   const floorPose = `0 0 ${-floorThickness / 2} 0 0 0`; // Floor surface at z=0
   
-  out.push(modelFloor('custom_floor', floorPose, floorSize));
+  out.push(modelFloor('custom_floor', floorPose, floorSize, state.floorFriction));
   out.push('');
   
   // Get merged wall segments
