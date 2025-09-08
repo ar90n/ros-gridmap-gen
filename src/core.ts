@@ -4,7 +4,7 @@
 export type Deg = 0 | 90 | 180 | 270;
 
 export interface State {
-  version: 4;
+  version: 1;
   rows: number;
   cols: number;
   cellSizeM: number;
@@ -33,7 +33,7 @@ export function makeDefaultState(rows: number, cols: number): State {
   );
   
   return {
-    version: 4,
+    version: 1,
     rows,
     cols,
     cellSizeM: 0.5,

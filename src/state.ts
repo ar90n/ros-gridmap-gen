@@ -7,7 +7,7 @@ const encode = (s: State) => encodeURIComponent(JSONCrush.crush(JSON.stringify(s
 const decode = (q: string): State | null => {
   try {
     const parsed = JSON.parse(JSONCrush.uncrush(decodeURIComponent(q)));
-    return parsed.version === 4 ? parsed : null; // Only accept current version
+    return parsed.version === 1 ? parsed : null; // Only accept current version
   } catch {
     return null;
   }
