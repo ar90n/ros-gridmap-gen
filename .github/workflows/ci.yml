@@ -78,7 +78,7 @@ jobs:
           test -d dist/assets || { echo "assets directory not found"; exit 1; }
           
           # Check if HTML contains expected content
-          grep -q "ROS Map Tool" dist/index.html || { echo "Expected content not found in HTML"; exit 1; }
+          grep -q "ROS GridMap Generator" dist/index.html || { echo "Expected content not found in HTML"; exit 1; }
           
           echo "Build artifacts validated successfully"
 
