@@ -138,9 +138,3 @@ Pull requests and issues are welcome!
 - **JSONCrush compression**: Stores complete state in URL fragment (#s=)
 - **Auto-updates**: 150ms debounce for smooth editing
 - **Backward compatibility**: Migration system for state versions
-
-### Architecture
-- **FDDD principles**: Functional Domain-Driven Design
-- **Pure functions**: Immutable core business logic
-- **State migration**: Backward compatibility for URL sharing
-- **Layered design**: Clear separation between business logic and UI
