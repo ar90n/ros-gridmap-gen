@@ -49,7 +49,6 @@ describe('Wall Merging', () => {
     
     const sdf = buildSdfWorld(state, 0.5, 0.1);
     
-    expect(sdf).toContain('<model name="custom_floor"');
-    expect(sdf).toContain('physics name="default_physics"');
+    expect(sdf).toContain('model://ground_plane');
   });
 });

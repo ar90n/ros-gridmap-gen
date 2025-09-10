@@ -189,50 +189,20 @@ function modelWall(name: string, pose: string, size: string): string {
   return `    <model name="${name}" static="true">
       <pose>${pose}</pose>
       <link name="link">
-        <collision name="col">
-          <geometry><box><size>${size}</size></box></geometry>
+        <collision name="collision">
+          <geometry>
+            <box><size>${size}</size></box>
+          </geometry>
         </collision>
-        <visual name="vis">
-          <geometry><box><size>${size}</size></box></geometry>
-          <material>
-            <ambient>0.8 0.2 0.2 1</ambient>
-            <diffuse>0.8 0.2 0.2 1</diffuse>
-            <specular>0.1 0.1 0.1 1</specular>
-            <emissive>0 0 0 1</emissive>
-          </material>
+        <visual name="visual">
+          <geometry>
+            <box><size>${size}</size></box>
+          </geometry>
         </visual>
       </link>
     </model>`;
 }
 
-// Helper function for SDF floor model (gray with configurable friction)
-function modelFloor(name: string, pose: string, size: string, friction: number = 0.8): string {
-  return `    <model name="${name}" static="true">
-      <pose>${pose}</pose>
-      <link name="link">
-        <collision name="col">
-          <geometry><box><size>${size}</size></box></geometry>
-          <surface>
-            <friction>
-              <ode>
-                <mu>${friction}</mu>
-                <mu2>${friction}</mu2>
-              </ode>
-            </friction>
-          </surface>
-        </collision>
-        <visual name="vis">
-          <geometry><box><size>${size}</size></box></geometry>
-          <material>
-            <ambient>0.5 0.5 0.5 1</ambient>
-            <diffuse>0.5 0.5 0.5 1</diffuse>
-            <specular>0.1 0.1 0.1 1</specular>
-            <emissive>0 0 0 1</emissive>
-          </material>
-        </visual>
-      </link>
-    </model>`;
-}
 
 // Wall segment for merging
 interface WallSegment {
@@ -361,27 +331,6 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   out.push('<sdf version="1.7">');
   out.push('  <world name="map_world">');
   
-  // Physics settings
-  out.push('    <physics name="default_physics" default="1" type="ode">');
-  out.push('      <gravity>0 0 -9.8066</gravity>');
-  out.push('      <ode>');
-  out.push('        <solver>');
-  out.push('          <type>quick</type>');
-  out.push('          <iters>150</iters>');
-  out.push('          <sor>1.4</sor>');
-  out.push('        </solver>');
-  out.push('        <constraints>');
-  out.push('          <cfm>1e-5</cfm>');
-  out.push('          <erp>0.2</erp>');
-  out.push('          <contact_max_correcting_vel>2000.0</contact_max_correcting_vel>');
-  out.push('          <contact_surface_layer>0.001</contact_surface_layer>');
-  out.push('        </constraints>');
-  out.push('      </ode>');
-  out.push('      <max_step_size>0.004</max_step_size>');
-  out.push('      <real_time_factor>1.0</real_time_factor>');
-  out.push('      <real_time_update_rate>250</real_time_update_rate>');
-  out.push('    </physics>');
-  out.push('');
   
   // Ambient lighting only (no shadows for performance)
   out.push('    <scene>');
@@ -391,40 +340,12 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   out.push('    </scene>');
   out.push('');
   
-  // GUI configuration for better initial camera view
-  out.push('    <gui fullscreen="0">');
-  out.push('      <camera name="user_camera">');
-  out.push('        <pose>2 2 3 0 0.5 -2.4</pose>'); // Position camera to see the map area
-  out.push('        <view_controller>orbit</view_controller>');
-  out.push('        <projection_type>perspective</projection_type>');
-  out.push('      </camera>');
-  out.push('    </gui>');
+  // Standard ground plane
+  out.push('    <include>');
+  out.push('      <uri>model://ground_plane</uri>');
+  out.push('    </include>');
   out.push('');
   
-  // Custom floor instead of ground_plane - make it large enough to catch all objects
-  const mapWidth = state.cols * state.cellSizeM;
-  const mapHeight = state.rows * state.cellSizeM;
-  const floorThickness = 0.2; // 20cm thick floor for stability
-  const floorSize = `${mapWidth + 2} ${mapHeight + 2} ${floorThickness}`;  // Extra margin
-  const floorPose = `0 0 ${-floorThickness / 2} 0 0 0`; // Floor surface at z=0
-  
-  out.push(modelFloor('custom_floor', floorPose, floorSize, state.floorFriction));
-  out.push('');
-  
-  // Add origin marker (small blue sphere at 0,0,0) - visual only for debugging
-  out.push('    <model name="origin_marker" static="true">');
-  out.push('      <pose>0 0 0.05 0 0 0</pose>');
-  out.push('      <link name="link">');
-  out.push('        <visual name="vis">');
-  out.push('          <geometry><sphere><radius>0.05</radius></sphere></geometry>');
-  out.push('          <material>');
-  out.push('            <ambient>0.0 0.0 1.0 1</ambient>');
-  out.push('            <diffuse>0.0 0.0 1.0 1</diffuse>');
-  out.push('          </material>');
-  out.push('        </visual>');
-  out.push('      </link>');
-  out.push('    </model>');
-  out.push('');
   
   // Get merged wall segments
   const wallSegments = mergeWalls(state, thickness, height);
