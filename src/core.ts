@@ -357,6 +357,11 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   out.push('<sdf version="1.7">');
   out.push('  <world name="map_world">');
   
+  // Basic physics settings (minimal but necessary for static objects)
+  out.push('    <physics name="default_physics" default="1" type="ode">');
+  out.push('      <gravity>0 0 -9.8066</gravity>');
+  out.push('    </physics>');
+  out.push('');
   
   // Ambient lighting with directional light
   out.push('    <scene>');
