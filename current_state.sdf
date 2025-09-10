@@ -1,5 +1,9 @@
 <sdf version="1.7">
   <world name="map_world">
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
     <physics name="default_physics" default="1" type="ode">
       <gravity>0 0 -9.8066</gravity>
     </physics>
@@ -19,16 +23,11 @@
     </light>
 
     <model name="custom_floor" static="true">
-      <pose>0 0 -0.05 0 0 0</pose>
+      <pose>0 0 -0.005 0 0 0</pose>
       <link name="link">
-        <collision name="collision">
-          <geometry>
-            <box><size>3.5 3.5 0.1</size></box>
-          </geometry>
-        </collision>
         <visual name="visual">
           <geometry>
-            <box><size>3.5 3.5 0.1</size></box>
+            <box><size>3.5 3.5 0.01</size></box>
           </geometry>
           <material>
             <ambient>0.1 0.1 0.1 1</ambient>
@@ -45,6 +44,11 @@
           <geometry>
             <box><size>0.6 0.1 0.5</size></box>
           </geometry>
+          <surface>
+            <contact>
+              <collide_without_contact>true</collide_without_contact>
+            </contact>
+          </surface>
         </collision>
         <visual name="visual">
           <geometry>

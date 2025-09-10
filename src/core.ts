@@ -184,7 +184,7 @@ free_thresh: 0.196
 `;
 }
 
-// Helper function for SDF box model (walls - white color, minimal physics)
+// Helper function for SDF box model (walls - white color with friction)
 function modelWall(name: string, pose: string, size: string): string {
   return `    <model name="${name}" static="true">
       <pose>${pose}</pose>
@@ -193,6 +193,11 @@ function modelWall(name: string, pose: string, size: string): string {
           <geometry>
             <box><size>${size}</size></box>
           </geometry>
+          <surface>
+            <contact>
+              <collide_without_contact>true</collide_without_contact>
+            </contact>
+          </surface>
         </collision>
         <visual name="visual">
           <geometry>
@@ -207,16 +212,11 @@ function modelWall(name: string, pose: string, size: string): string {
     </model>`;
 }
 
-// Helper function for custom floor with collision (very dark)
+// Helper function for minimal custom floor (very dark, visual only)
 function modelFloor(name: string, pose: string, size: string): string {
   return `    <model name="${name}" static="true">
       <pose>${pose}</pose>
       <link name="link">
-        <collision name="collision">
-          <geometry>
-            <box><size>${size}</size></box>
-          </geometry>
-        </collision>
         <visual name="visual">
           <geometry>
             <box><size>${size}</size></box>
@@ -357,6 +357,12 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   out.push('<sdf version="1.7">');
   out.push('  <world name="map_world">');
   
+  // Include standard Gazebo ground plane
+  out.push('    <include>');
+  out.push('      <uri>model://ground_plane</uri>');
+  out.push('    </include>');
+  out.push('');
+  
   // Basic physics settings (minimal but necessary for static objects)
   out.push('    <physics name="default_physics" default="1" type="ode">');
   out.push('      <gravity>0 0 -9.8066</gravity>');
@@ -381,23 +387,15 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   out.push('    </light>');
   out.push('');
   
-  // Custom dark floor with collision geometry - centered on map, not origin
+  // Custom dark floor (visual only, no collision for performance)
   const mapWidth = state.cols * state.cellSizeM;
   const mapHeight = state.rows * state.cellSizeM;
-  const margin = 2 * state.cellSizeM; // 2 cells per side
-  const floorWidth = mapWidth + 2 * margin; // +4 cells total (2 cells each side)
-  const floorHeight = mapHeight + 2 * margin; // +4 cells total (2 cells each side)
-  const floorThickness = 0.1; // 10cm thick for solid collision
+  const margin = 2 * state.cellSizeM; // 2 cells margin
+  const floorWidth = mapWidth + 2 * margin;
+  const floorHeight = mapHeight + 2 * margin;
+  const floorThickness = 0.01; // Very thin, visual only
   const floorSize = `${floorWidth} ${floorHeight} ${floorThickness}`;
-  
-  // Calculate offset from origin cell to map center
-  const oxC = (state.origin.col + 0.5) * state.cellSizeM; // Origin cell center X
-  const oyC = ((state.rows - 1 - state.origin.row) + 0.5) * state.cellSizeM; // Origin cell center Y
-  const mapCenterX = (state.cols / 2) * state.cellSizeM; // Map center X
-  const mapCenterY = (state.rows / 2) * state.cellSizeM; // Map center Y
-  const floorOffsetX = mapCenterX - oxC; // Offset from origin to map center
-  const floorOffsetY = mapCenterY - oyC;
-  const floorPose = `${floorOffsetX} ${floorOffsetY} ${-floorThickness / 2} 0 0 0`;
+  const floorPose = `0 0 ${-floorThickness / 2} 0 0 0`;
   
   out.push(modelFloor('custom_floor', floorPose, floorSize));
   out.push('');
