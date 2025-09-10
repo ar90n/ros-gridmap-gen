@@ -198,6 +198,33 @@ function modelWall(name: string, pose: string, size: string): string {
           <geometry>
             <box><size>${size}</size></box>
           </geometry>
+          <material>
+            <ambient>0.6 0.6 0.6 1</ambient>
+            <diffuse>0.6 0.6 0.6 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>`;
+}
+
+// Helper function for custom floor model
+function modelFloor(name: string, pose: string, size: string): string {
+  return `    <model name="${name}" static="true">
+      <pose>${pose}</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box><size>${size}</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>${size}</size></box>
+          </geometry>
+          <material>
+            <ambient>0.2 0.2 0.2 1</ambient>
+            <diffuse>0.2 0.2 0.2 1</diffuse>
+          </material>
         </visual>
       </link>
     </model>`;
@@ -332,18 +359,35 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   out.push('  <world name="map_world">');
   
   
-  // Ambient lighting only (no shadows for performance)
+  // Ambient lighting with directional light
   out.push('    <scene>');
-  out.push('      <ambient>0.8 0.8 0.8 1.0</ambient>');
+  out.push('      <ambient>0.4 0.4 0.4 1.0</ambient>');
   out.push('      <background>0.7 0.7 0.7 1.0</background>');
   out.push('      <shadows>false</shadows>');
   out.push('    </scene>');
   out.push('');
   
-  // Standard ground plane
-  out.push('    <include>');
-  out.push('      <uri>model://ground_plane</uri>');
-  out.push('    </include>');
+  // Directional light from above
+  out.push('    <light name="directional_light" type="directional">');
+  out.push('      <cast_shadows>false</cast_shadows>');
+  out.push('      <pose>0 0 10 0 0 0</pose>');
+  out.push('      <diffuse>0.8 0.8 0.8 1</diffuse>');
+  out.push('      <specular>0.2 0.2 0.2 1</specular>');
+  out.push('      <direction>0 0 -1</direction>');
+  out.push('    </light>');
+  out.push('');
+  
+  // Custom floor with proper size (map + 3 cells margin)
+  const mapWidth = state.cols * state.cellSizeM;
+  const mapHeight = state.rows * state.cellSizeM;
+  const margin = 3 * state.cellSizeM; // 3 cells margin
+  const floorWidth = mapWidth + 2 * margin;
+  const floorHeight = mapHeight + 2 * margin;
+  const floorThickness = 0.1;
+  const floorSize = `${floorWidth} ${floorHeight} ${floorThickness}`;
+  const floorPose = `0 0 ${-floorThickness / 2} 0 0 0`;
+  
+  out.push(modelFloor('custom_floor', floorPose, floorSize));
   out.push('');
   
   
