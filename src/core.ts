@@ -207,28 +207,6 @@ function modelWall(name: string, pose: string, size: string): string {
     </model>`;
 }
 
-// Helper function for custom floor model
-function modelFloor(name: string, pose: string, size: string): string {
-  return `    <model name="${name}" static="true">
-      <pose>${pose}</pose>
-      <link name="link">
-        <collision name="collision">
-          <geometry>
-            <box><size>${size}</size></box>
-          </geometry>
-        </collision>
-        <visual name="visual">
-          <geometry>
-            <box><size>${size}</size></box>
-          </geometry>
-          <material>
-            <ambient>0.2 0.2 0.2 1</ambient>
-            <diffuse>0.2 0.2 0.2 1</diffuse>
-          </material>
-        </visual>
-      </link>
-    </model>`;
-}
 
 
 // Wall segment for merging
@@ -377,17 +355,10 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   out.push('    </light>');
   out.push('');
   
-  // Custom floor with proper size (map + 3 cells margin)
-  const mapWidth = state.cols * state.cellSizeM;
-  const mapHeight = state.rows * state.cellSizeM;
-  const margin = 3 * state.cellSizeM; // 3 cells margin
-  const floorWidth = mapWidth + 2 * margin;
-  const floorHeight = mapHeight + 2 * margin;
-  const floorThickness = 0.1;
-  const floorSize = `${floorWidth} ${floorHeight} ${floorThickness}`;
-  const floorPose = `0 0 ${-floorThickness / 2} 0 0 0`;
-  
-  out.push(modelFloor('custom_floor', floorPose, floorSize));
+  // Standard ground plane (static, no physics)
+  out.push('    <include>');
+  out.push('      <uri>model://ground_plane</uri>');
+  out.push('    </include>');
   out.push('');
   
   
