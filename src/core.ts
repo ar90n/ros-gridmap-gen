@@ -184,7 +184,7 @@ free_thresh: 0.196
 `;
 }
 
-// Helper function for SDF box model (walls - white color with friction)
+// Helper function for SDF box model (walls - white color, minimal physics)
 function modelWall(name: string, pose: string, size: string): string {
   return `    <model name="${name}" static="true">
       <pose>${pose}</pose>
@@ -193,11 +193,6 @@ function modelWall(name: string, pose: string, size: string): string {
           <geometry>
             <box><size>${size}</size></box>
           </geometry>
-          <surface>
-            <contact>
-              <collide_without_contact>true</collide_without_contact>
-            </contact>
-          </surface>
         </collision>
         <visual name="visual">
           <geometry>
@@ -386,15 +381,23 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   out.push('    </light>');
   out.push('');
   
-  // Custom dark floor with collision geometry
+  // Custom dark floor with collision geometry - centered on map, not origin
   const mapWidth = state.cols * state.cellSizeM;
   const mapHeight = state.rows * state.cellSizeM;
   const margin = 2 * state.cellSizeM; // 2 cells per side
   const floorWidth = mapWidth + 2 * margin; // +4 cells total (2 cells each side)
   const floorHeight = mapHeight + 2 * margin; // +4 cells total (2 cells each side)
-  const floorThickness = 0.01; // Very thin, visual only
+  const floorThickness = 0.1; // 10cm thick for solid collision
   const floorSize = `${floorWidth} ${floorHeight} ${floorThickness}`;
-  const floorPose = `0 0 ${-floorThickness / 2} 0 0 0`;
+  
+  // Calculate offset from origin cell to map center
+  const oxC = (state.origin.col + 0.5) * state.cellSizeM; // Origin cell center X
+  const oyC = ((state.rows - 1 - state.origin.row) + 0.5) * state.cellSizeM; // Origin cell center Y
+  const mapCenterX = (state.cols / 2) * state.cellSizeM; // Map center X
+  const mapCenterY = (state.rows / 2) * state.cellSizeM; // Map center Y
+  const floorOffsetX = mapCenterX - oxC; // Offset from origin to map center
+  const floorOffsetY = mapCenterY - oyC;
+  const floorPose = `${floorOffsetX} ${floorOffsetY} ${-floorThickness / 2} 0 0 0`;
   
   out.push(modelFloor('custom_floor', floorPose, floorSize));
   out.push('');
