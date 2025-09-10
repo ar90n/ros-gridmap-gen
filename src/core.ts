@@ -213,9 +213,9 @@ function modelWall(name: string, pose: string, size: string): string {
         <visual name="vis">
           <geometry><box><size>${size}</size></box></geometry>
           <material>
-            <ambient>1 1 1 1</ambient>
-            <diffuse>1 1 1 1</diffuse>
-            <specular>1 1 1 1</specular>
+            <ambient>0.8 0.2 0.2 1</ambient>
+            <diffuse>0.8 0.2 0.2 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
             <emissive>0 0 0 1</emissive>
           </material>
         </visual>
@@ -419,6 +419,16 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   out.push('    </scene>');
   out.push('');
   
+  // GUI configuration for better initial camera view
+  out.push('    <gui fullscreen="0">');
+  out.push('      <camera name="user_camera">');
+  out.push('        <pose>2 2 3 0 0.5 -2.4</pose>'); // Position camera to see the map area
+  out.push('        <view_controller>orbit</view_controller>');
+  out.push('        <projection_type>perspective</projection_type>');
+  out.push('      </camera>');
+  out.push('    </gui>');
+  out.push('');
+  
   // Custom floor instead of ground_plane
   const mapWidth = state.cols * state.cellSizeM;
   const mapHeight = state.rows * state.cellSizeM;
@@ -427,6 +437,21 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   const floorPose = `0 0 ${-floorThickness / 2} 0 0 0`; // Floor surface at z=0
   
   out.push(modelFloor('custom_floor', floorPose, floorSize, state.floorFriction));
+  out.push('');
+  
+  // Add origin marker (small blue sphere at 0,0,0)
+  out.push('    <model name="origin_marker" static="true">');
+  out.push('      <pose>0 0 0.05 0 0 0</pose>');
+  out.push('      <link name="link">');
+  out.push('        <visual name="vis">');
+  out.push('          <geometry><sphere><radius>0.02</radius></sphere></geometry>');
+  out.push('          <material>');
+  out.push('            <ambient>0.0 0.0 1.0 1</ambient>');
+  out.push('            <diffuse>0.0 0.0 1.0 1</diffuse>');
+  out.push('          </material>');
+  out.push('        </visual>');
+  out.push('      </link>');
+  out.push('    </model>');
   out.push('');
   
   // Get merged wall segments
