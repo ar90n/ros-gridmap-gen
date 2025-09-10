@@ -38,7 +38,7 @@ export function makeDefaultState(rows: number, cols: number): State {
     cols,
     cellSizeM: 0.5,
     resolution: 0.03125, // default: 0.5m / 16px = 0.03125 m/px
-    wallThicknessM: 0.03, // 30mm default
+    wallThicknessM: 0.1, // 100mm default for better visibility
     floorFriction: 0.8, // default floor friction coefficient
     hEdges,
     vEdges,
@@ -444,7 +444,7 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   out.push('      <pose>0 0 0.05 0 0 0</pose>');
   out.push('      <link name="link">');
   out.push('        <visual name="vis">');
-  out.push('          <geometry><sphere><radius>0.02</radius></sphere></geometry>');
+  out.push('          <geometry><sphere><radius>0.05</radius></sphere></geometry>');
   out.push('          <material>');
   out.push('            <ambient>0.0 0.0 1.0 1</ambient>');
   out.push('            <diffuse>0.0 0.0 1.0 1</diffuse>');

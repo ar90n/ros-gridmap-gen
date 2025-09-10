@@ -56,7 +56,7 @@ export function setResolution(res: number) {
 export function setWallThicknessM(m: number) {
   state.update(s => ({
     ...s,
-    wallThicknessM: Math.max(0.001, m || 0.03)
+    wallThicknessM: Math.max(0.001, m || 0.1)
   }));
 }
 

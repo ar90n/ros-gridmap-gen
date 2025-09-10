@@ -18,7 +18,7 @@ describe('Core Business Logic', () => {
       expect(state.cols).toBe(5);
       expect(state.cellSizeM).toBe(0.5);
       expect(state.resolution).toBe(0.03125); // 0.5m / 16px
-      expect(state.wallThicknessM).toBe(0.03); // 30mm default
+      expect(state.wallThicknessM).toBe(0.1); // 100mm default
       expect(state.hEdges).toHaveLength(6); // rows + 1
       expect(state.vEdges).toHaveLength(6); // cols + 1
       expect(state.cellCostPalette).toEqual([0, 30, 80, 150]);
