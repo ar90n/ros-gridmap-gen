@@ -191,24 +191,6 @@ function modelWall(name: string, pose: string, size: string): string {
       <link name="link">
         <collision name="col">
           <geometry><box><size>${size}</size></box></geometry>
-          <surface>
-            <friction>
-              <ode>
-                <mu>1.0</mu>
-                <mu2>1.0</mu2>
-              </ode>
-            </friction>
-            <bounce>
-              <restitution_coefficient>0.0</restitution_coefficient>
-              <threshold>1000.0</threshold>
-            </bounce>
-            <contact>
-              <ode>
-                <kp>10000000.0</kp>
-                <kd>1.0</kd>
-              </ode>
-            </contact>
-          </surface>
         </collision>
         <visual name="vis">
           <geometry><box><size>${size}</size></box></geometry>
@@ -237,16 +219,6 @@ function modelFloor(name: string, pose: string, size: string, friction: number =
                 <mu2>${friction}</mu2>
               </ode>
             </friction>
-            <bounce>
-              <restitution_coefficient>0.1</restitution_coefficient>
-              <threshold>1000.0</threshold>
-            </bounce>
-            <contact>
-              <ode>
-                <kp>10000000.0</kp>
-                <kd>1.0</kd>
-              </ode>
-            </contact>
           </surface>
         </collision>
         <visual name="vis">
@@ -439,13 +411,10 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   out.push(modelFloor('custom_floor', floorPose, floorSize, state.floorFriction));
   out.push('');
   
-  // Add origin marker (small blue sphere at 0,0,0)
+  // Add origin marker (small blue sphere at 0,0,0) - visual only for debugging
   out.push('    <model name="origin_marker" static="true">');
   out.push('      <pose>0 0 0.05 0 0 0</pose>');
   out.push('      <link name="link">');
-  out.push('        <collision name="col">');
-  out.push('          <geometry><sphere><radius>0.05</radius></sphere></geometry>');
-  out.push('        </collision>');
   out.push('        <visual name="vis">');
   out.push('          <geometry><sphere><radius>0.05</radius></sphere></geometry>');
   out.push('          <material>');
