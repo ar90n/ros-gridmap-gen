@@ -402,7 +402,7 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   out.push('          <cfm>1e-5</cfm>');
   out.push('          <erp>0.2</erp>');
   out.push('          <contact_max_correcting_vel>2000.0</contact_max_correcting_vel>');
-  out.push('          <contact_surface_layer>0.01</contact_surface_layer>');
+  out.push('          <contact_surface_layer>0.001</contact_surface_layer>');
   out.push('        </constraints>');
   out.push('      </ode>');
   out.push('      <max_step_size>0.004</max_step_size>');
@@ -429,11 +429,11 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   out.push('    </gui>');
   out.push('');
   
-  // Custom floor instead of ground_plane
+  // Custom floor instead of ground_plane - make it large enough to catch all objects
   const mapWidth = state.cols * state.cellSizeM;
   const mapHeight = state.rows * state.cellSizeM;
-  const floorThickness = 0.1; // 10cm thick floor for stability
-  const floorSize = `${mapWidth + 1} ${mapHeight + 1} ${floorThickness}`;
+  const floorThickness = 0.2; // 20cm thick floor for stability
+  const floorSize = `${mapWidth + 2} ${mapHeight + 2} ${floorThickness}`;  // Extra margin
   const floorPose = `0 0 ${-floorThickness / 2} 0 0 0`; // Floor surface at z=0
   
   out.push(modelFloor('custom_floor', floorPose, floorSize, state.floorFriction));
@@ -443,6 +443,9 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   out.push('    <model name="origin_marker" static="true">');
   out.push('      <pose>0 0 0.05 0 0 0</pose>');
   out.push('      <link name="link">');
+  out.push('        <collision name="col">');
+  out.push('          <geometry><sphere><radius>0.05</radius></sphere></geometry>');
+  out.push('        </collision>');
   out.push('        <visual name="vis">');
   out.push('          <geometry><sphere><radius>0.05</radius></sphere></geometry>');
   out.push('          <material>');
