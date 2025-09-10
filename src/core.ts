@@ -193,21 +193,42 @@ function modelWall(name: string, pose: string, size: string): string {
           <geometry>
             <box><size>${size}</size></box>
           </geometry>
+          <surface>
+            <contact>
+              <collide_without_contact>true</collide_without_contact>
+            </contact>
+          </surface>
         </collision>
         <visual name="visual">
           <geometry>
             <box><size>${size}</size></box>
           </geometry>
           <material>
-            <ambient>0.6 0.6 0.6 1</ambient>
-            <diffuse>0.6 0.6 0.6 1</diffuse>
+            <ambient>0.9 0.9 0.9 1</ambient>
+            <diffuse>0.9 0.9 0.9 1</diffuse>
           </material>
         </visual>
       </link>
     </model>`;
 }
 
-
+// Helper function for minimal custom floor (very dark, visual only)
+function modelFloor(name: string, pose: string, size: string): string {
+  return `    <model name="${name}" static="true">
+      <pose>${pose}</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry>
+            <box><size>${size}</size></box>
+          </geometry>
+          <material>
+            <ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>`;
+}
 
 // Wall segment for merging
 interface WallSegment {
@@ -355,10 +376,17 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   out.push('    </light>');
   out.push('');
   
-  // Standard ground plane (static, no physics)
-  out.push('    <include>');
-  out.push('      <uri>model://ground_plane</uri>');
-  out.push('    </include>');
+  // Custom dark floor (visual only, no collision for performance)
+  const mapWidth = state.cols * state.cellSizeM;
+  const mapHeight = state.rows * state.cellSizeM;
+  const margin = 2 * state.cellSizeM; // 2 cells margin
+  const floorWidth = mapWidth + 2 * margin;
+  const floorHeight = mapHeight + 2 * margin;
+  const floorThickness = 0.01; // Very thin, visual only
+  const floorSize = `${floorWidth} ${floorHeight} ${floorThickness}`;
+  const floorPose = `0 0 ${-floorThickness / 2} 0 0 0`;
+  
+  out.push(modelFloor('custom_floor', floorPose, floorSize));
   out.push('');
   
   
