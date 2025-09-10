@@ -212,11 +212,16 @@ function modelWall(name: string, pose: string, size: string): string {
     </model>`;
 }
 
-// Helper function for minimal custom floor (very dark, visual only)
+// Helper function for custom floor with collision (very dark)
 function modelFloor(name: string, pose: string, size: string): string {
   return `    <model name="${name}" static="true">
       <pose>${pose}</pose>
       <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box><size>${size}</size></box>
+          </geometry>
+        </collision>
         <visual name="visual">
           <geometry>
             <box><size>${size}</size></box>
@@ -381,12 +386,12 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   out.push('    </light>');
   out.push('');
   
-  // Custom dark floor (visual only, no collision for performance)
+  // Custom dark floor with collision geometry
   const mapWidth = state.cols * state.cellSizeM;
   const mapHeight = state.rows * state.cellSizeM;
-  const margin = 2 * state.cellSizeM; // 2 cells margin
-  const floorWidth = mapWidth + 2 * margin;
-  const floorHeight = mapHeight + 2 * margin;
+  const margin = 2 * state.cellSizeM; // 2 cells per side
+  const floorWidth = mapWidth + 2 * margin; // +4 cells total (2 cells each side)
+  const floorHeight = mapHeight + 2 * margin; // +4 cells total (2 cells each side)
   const floorThickness = 0.01; // Very thin, visual only
   const floorSize = `${floorWidth} ${floorHeight} ${floorThickness}`;
   const floorPose = `0 0 ${-floorThickness / 2} 0 0 0`;
