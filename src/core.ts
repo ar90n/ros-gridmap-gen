@@ -184,51 +184,9 @@ free_thresh: 0.196
 `;
 }
 
-// Helper function for SDF box model (walls - white color with friction)
-function modelWall(name: string, pose: string, size: string): string {
-  return `    <model name="${name}" static="true">
-      <pose>${pose}</pose>
-      <link name="link">
-        <collision name="collision">
-          <geometry>
-            <box><size>${size}</size></box>
-          </geometry>
-          <surface>
-            <contact>
-              <collide_without_contact>true</collide_without_contact>
-            </contact>
-          </surface>
-        </collision>
-        <visual name="visual">
-          <geometry>
-            <box><size>${size}</size></box>
-          </geometry>
-          <material>
-            <ambient>0.9 0.9 0.9 1</ambient>
-            <diffuse>0.9 0.9 0.9 1</diffuse>
-          </material>
-        </visual>
-      </link>
-    </model>`;
-}
+// Helper function removed - walls are now built inline with proper structure
 
-// Helper function for minimal custom floor (very dark, visual only)
-function modelFloor(name: string, pose: string, size: string): string {
-  return `    <model name="${name}" static="true">
-      <pose>${pose}</pose>
-      <link name="link">
-        <visual name="visual">
-          <geometry>
-            <box><size>${size}</size></box>
-          </geometry>
-          <material>
-            <ambient>0.1 0.1 0.1 1</ambient>
-            <diffuse>0.1 0.1 0.1 1</diffuse>
-          </material>
-        </visual>
-      </link>
-    </model>`;
-}
+// Helper function removed - no custom floor needed
 
 // Wall segment for merging
 interface WallSegment {
@@ -357,15 +315,67 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   out.push('<sdf version="1.7">');
   out.push('  <world name="map_world">');
   
-  // Include standard Gazebo ground plane
-  out.push('    <include>');
-  out.push('      <uri>model://ground_plane</uri>');
-  out.push('    </include>');
+  // Ground plane (self-defined for full control)
+  out.push('    <model name="ground_plane">');
+  out.push('      <static>1</static>');
+  out.push('      <link name="link">');
+  out.push('        <collision name="collision">');
+  out.push('          <geometry>');
+  out.push('            <plane>');
+  out.push('              <normal>0 0 1</normal>');
+  out.push('              <size>100 100</size>');
+  out.push('            </plane>');
+  out.push('          </geometry>');
+  out.push('          <surface>');
+  out.push('            <friction>');
+  out.push('              <ode>');
+  out.push(`                <mu>${state.floorFriction}</mu>`);
+  out.push(`                <mu2>${state.floorFriction}</mu2>`);
+  out.push('              </ode>');
+  out.push('              <torsional>');
+  out.push('                <ode/>');
+  out.push('              </torsional>');
+  out.push('            </friction>');
+  out.push('            <contact>');
+  out.push('              <ode/>');
+  out.push('            </contact>');
+  out.push('            <bounce/>');
+  out.push('          </surface>');
+  out.push('          <max_contacts>10</max_contacts>');
+  out.push('        </collision>');
+  out.push('        <visual name="visual">');
+  out.push('          <cast_shadows>0</cast_shadows>');
+  out.push('          <geometry>');
+  out.push('            <plane>');
+  out.push('              <normal>0 0 1</normal>');
+  out.push('              <size>100 100</size>');
+  out.push('            </plane>');
+  out.push('          </geometry>');
+  out.push('          <material>');
+  out.push('            <script>');
+  out.push('              <uri>file://media/materials/scripts/gazebo.material</uri>');
+  out.push('              <name>Gazebo/Grey</name>');
+  out.push('            </script>');
+  out.push('          </material>');
+  out.push('        </visual>');
+  out.push('        <self_collide>0</self_collide>');
+  out.push('        <enable_wind>0</enable_wind>');
+  out.push('        <kinematic>0</kinematic>');
+  out.push('      </link>');
+  out.push('    </model>');
   out.push('');
   
-  // Basic physics settings (minimal but necessary for static objects)
-  out.push('    <physics name="default_physics" default="1" type="ode">');
-  out.push('      <gravity>0 0 -9.8066</gravity>');
+  // Global gravity (outside physics)
+  out.push('    <gravity>0 0 -9.8</gravity>');
+  out.push('    <magnetic_field>6e-06 2.3e-05 -4.2e-05</magnetic_field>');
+  out.push('    <atmosphere type="adiabatic"/>');
+  out.push('');
+  
+  // Physics settings (based on working example)
+  out.push('    <physics name="default_physics" default="0" type="ode">');
+  out.push('      <max_step_size>0.001</max_step_size>');
+  out.push('      <real_time_factor>1</real_time_factor>');
+  out.push('      <real_time_update_rate>1000</real_time_update_rate>');
   out.push('    </physics>');
   out.push('');
   
@@ -387,43 +397,71 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   out.push('    </light>');
   out.push('');
   
-  // Custom dark floor (visual only, no collision for performance)
-  const mapWidth = state.cols * state.cellSizeM;
-  const mapHeight = state.rows * state.cellSizeM;
-  const margin = 2 * state.cellSizeM; // 2 cells margin
-  const floorWidth = mapWidth + 2 * margin;
-  const floorHeight = mapHeight + 2 * margin;
-  const floorThickness = 0.01; // Very thin, visual only
-  const floorSize = `${floorWidth} ${floorHeight} ${floorThickness}`;
-  const floorPose = `0 0 ${-floorThickness / 2} 0 0 0`;
-  
-  out.push(modelFloor('custom_floor', floorPose, floorSize));
-  out.push('');
+  // No custom floor needed - ground_plane provides physics and visuals
   
   
-  // Get merged wall segments
+  // Single model with multiple wall links (stable structure)
+  out.push('    <model name="map_walls">');
+  out.push('      <static>1</static>');
+  
+  // Get merged wall segments and create links
   const wallSegments = mergeWalls(state, thickness, height);
   
-  // Add merged wall segments
   wallSegments.forEach((segment, index) => {
-    let yaw, size;
+    const linkName = `Wall_${index}`;
+    let size;
     
     if (segment.type === 'horizontal') {
-      // Horizontal walls: extend along X-axis, thin along Y-axis
-      yaw = 0; // No rotation needed
       size = `${segment.length} ${segment.thickness} ${segment.height}`;
     } else {
-      // Vertical walls: extend along Y-axis, thin along X-axis  
-      yaw = 0; // No rotation - use size to define orientation
       size = `${segment.thickness} ${segment.length} ${segment.height}`;
     }
     
-    out.push(modelWall(
-      `wall_${segment.type}_${index}`,
-      `${segment.x} ${segment.y} ${segment.height / 2} 0 0 ${yaw}`,
-      size
-    ));
+    // Wall link
+    out.push(`      <link name="${linkName}">`);
+    
+    // Collision with complete surface settings
+    out.push(`        <collision name="${linkName}_Collision">`);
+    out.push('          <geometry>');
+    out.push(`            <box><size>${size}</size></box>`);
+    out.push('          </geometry>');
+    out.push(`          <pose frame="">0 0 ${segment.height / 2} 0 -0 0</pose>`);
+    out.push('          <max_contacts>10</max_contacts>');
+    out.push('          <surface>');
+    out.push('            <contact>');
+    out.push('              <ode/>');
+    out.push('            </contact>');
+    out.push('            <bounce/>');
+    out.push('            <friction>');
+    out.push('              <torsional>');
+    out.push('                <ode/>');
+    out.push('              </torsional>');
+    out.push('              <ode/>');
+    out.push('            </friction>');
+    out.push('          </surface>');
+    out.push('        </collision>');
+    
+    // Visual
+    out.push(`        <visual name="${linkName}_Visual">`);
+    out.push(`          <pose frame="">0 0 ${segment.height / 2} 0 -0 0</pose>`);
+    out.push('          <geometry>');
+    out.push(`            <box><size>${size}</size></box>`);
+    out.push('          </geometry>');
+    out.push('          <material>');
+    out.push('            <ambient>0.9 0.9 0.9 1</ambient>');
+    out.push('            <diffuse>0.9 0.9 0.9 1</diffuse>');
+    out.push('          </material>');
+    out.push('        </visual>');
+    
+    // Link pose (XY position only, Z=0)
+    out.push(`        <pose frame="">${segment.x} ${segment.y} 0 0 -0 0</pose>`);
+    out.push('        <self_collide>0</self_collide>');
+    out.push('        <enable_wind>0</enable_wind>');
+    out.push('        <kinematic>0</kinematic>');
+    out.push('      </link>');
   });
+  
+  out.push('    </model>');
   
   out.push('  </world>');
   out.push('</sdf>');
