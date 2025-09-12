@@ -11,7 +11,7 @@ describe('Current State Check', () => {
 
     const sdf = buildSdfWorld(state, 0.5, state.wallThicknessM);
     
-    fs.writeFileSync('/workspaces/ros-gridmap-gen/current_state.sdf', sdf);
+    fs.writeFileSync('current_state.sdf', sdf);
     
     console.log('=== CURRENT STATE ANALYSIS ===');
     
