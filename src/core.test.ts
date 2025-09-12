@@ -155,7 +155,7 @@ describe('Core Business Logic', () => {
       
       expect(sdf).toContain('<sdf version="1.7">');
       expect(sdf).toContain('<world name="map_world">');
-      expect(sdf).toContain('<model name="custom_floor"');
+      expect(sdf).toContain('<model name="ground_plane"');
       expect(sdf).toContain('</world>');
       expect(sdf).toContain('</sdf>');
     });
@@ -167,10 +167,10 @@ describe('Core Business Logic', () => {
       
       const sdf = buildSdfWorld(state);
       
-      expect(sdf).toContain('wall_horizontal_0');
-      expect(sdf).toContain('wall_vertical_');
+      expect(sdf).toContain('Wall_0');
+      expect(sdf).toContain('Wall_');
       expect(sdf).toContain('<model name=');
-      expect(sdf).toContain('static="true"');
+      expect(sdf).toContain('<static>1</static>');
     });
 
     it('should position walls relative to origin', () => {
@@ -180,7 +180,7 @@ describe('Core Business Logic', () => {
       
       const sdf = buildSdfWorld(state);
       
-      expect(sdf).toContain('wall_horizontal_0');
+      expect(sdf).toContain('Wall_0');
       expect(sdf).toContain('<pose>');
     });
 

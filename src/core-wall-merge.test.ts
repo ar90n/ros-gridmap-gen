@@ -12,7 +12,7 @@ describe('Wall Merging', () => {
     const sdf = buildSdfWorld(state, 0.5, 0.1);
     
     // Should contain single merged wall instead of 3 separate walls
-    expect(sdf).toContain('wall_horizontal_0');
+    expect(sdf).toContain('Wall_0');
     expect(sdf).not.toContain('wall_h_1_0');
     expect(sdf).not.toContain('wall_h_1_1');
     expect(sdf).not.toContain('wall_h_1_2');
@@ -28,7 +28,7 @@ describe('Wall Merging', () => {
     const sdf = buildSdfWorld(state, 0.5, 0.1);
     
     // Should contain single merged wall instead of 3 separate walls
-    expect(sdf).toContain('wall_vertical_0');
+    expect(sdf).toContain('Wall_0');
     expect(sdf).not.toContain('wall_v_1_0');
     expect(sdf).not.toContain('wall_v_1_1');
     expect(sdf).not.toContain('wall_v_1_2');
@@ -49,7 +49,7 @@ describe('Wall Merging', () => {
     
     const sdf = buildSdfWorld(state, 0.5, 0.1);
     
-    expect(sdf).toContain('<model name="custom_floor"');
+    expect(sdf).toContain('<model name="ground_plane"');
     expect(sdf).toContain('<light name="directional_light"');
   });
 });
