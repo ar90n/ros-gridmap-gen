@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Launch Gazebo with the generated SDF world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="/workspace/maps/world_classic.sdf"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="recording" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
+
+  <!-- Spawn TurtleBot3 -->
+  <param name="robot_description" command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_$(env TURTLEBOT3_MODEL).urdf.xacro" />
+  
+  <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" 
+        args="-urdf -model turtlebot3_$(env TURTLEBOT3_MODEL) -param robot_description -x 0 -y 0 -z 0.01" />
+
+  <!-- Robot state publisher -->
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+    <param name="publish_frequency" type="double" value="50.0" />
+  </node>
+</launch>

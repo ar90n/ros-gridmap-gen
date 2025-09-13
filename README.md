@@ -64,6 +64,21 @@ src/
     └── jsoncrush.d.ts   # JSONCrush type declarations
 ```
 
+## 🧪 Testing with Simulators
+
+Docker-based examples are provided to test exported maps with various simulators:
+
+```bash
+cd examples
+node generate_sample_maps.cjs  # Generate sample maps
+docker-compose run --rm gazebo-classic  # Test with Gazebo Classic
+docker-compose run --rm gazebo-ignition  # Test with Gazebo Fortress
+docker-compose run --rm mvsim  # Test with MVSim
+docker-compose run --rm flatland  # Test with Flatland
+```
+
+See [examples/README.md](examples/README.md) for detailed instructions.
+
 ## 🚀 Deployment
 
 ### GitHub Pages

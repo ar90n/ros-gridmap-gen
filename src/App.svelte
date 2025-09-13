@@ -2,9 +2,8 @@
   import { state, shareUrl, setGrid, setCellSize, setResolution, setWallThicknessM, setFloorFriction, clickCell, setOrigin, selectPaletteIndex, updatePaletteValue } from './state';
   import { exportAll } from './export';
 
-  let ros1 = true;
-  let ros2 = true;
-  let sdf = true;
+  let rosVersion = 'ros2';  // 'ros1' | 'ros2'
+  let simulatorFormat = 'gazebo';  // 'classic' | 'gazebo' | 'mvsim' | 'flatland'
   let wallHeight = 0.5;
   let helpExpanded = false;
   
@@ -41,7 +40,7 @@
   }
   
   const onExport = async () => {
-    await exportAll($state, { ros1, ros2, sdf, wallHeight });
+    await exportAll($state, { rosVersion, simulatorFormat, wallHeight });
   };
   
   // Calculate grid layout
@@ -168,19 +167,21 @@
     </div>
 
     <div class="tool-group">
-      <label class="tool-label">Export</label>
-      <label class="flex items-center gap-2 text-slate-300">
-        <input class="control-checkbox" type="checkbox" bind:checked={ros1} />
-        ROS1
-      </label>
-      <label class="flex items-center gap-2 text-slate-300">
-        <input class="control-checkbox" type="checkbox" bind:checked={ros2} />
-        ROS2
-      </label>
-      <label class="flex items-center gap-2 text-slate-300">
-        <input class="control-checkbox" type="checkbox" bind:checked={sdf} />
-        SDF
-      </label>
+      <label class="tool-label">ROS Version</label>
+      <select class="control-select" bind:value={rosVersion}>
+        <option value="ros1">ROS1</option>
+        <option value="ros2">ROS2</option>
+      </select>
+    </div>
+
+    <div class="tool-group">
+      <label class="tool-label">Simulator Format</label>
+      <select class="control-select" bind:value={simulatorFormat}>
+        <option value="classic">Gazebo Classic</option>
+        <option value="gazebo">Gazebo</option>
+        <option value="mvsim">MVSim</option>
+        <option value="flatland">Flatland</option>
+      </select>
     </div>
 
     <div class="tool-group ml-auto">

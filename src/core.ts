@@ -198,7 +198,7 @@ interface WallSegment {
   height: number;
 }
 
-// Pure function to merge continuous walls
+// Pure function to merge continuous walls for SDF (with origin offset)
 function mergeWalls(state: State, thickness: number, height: number): WallSegment[] {
   const segments: WallSegment[] = [];
   const cellSize = state.cellSizeM;
@@ -306,14 +306,140 @@ function mergeWalls(state: State, thickness: number, height: number): WallSegmen
   return segments;
 }
 
-// Pure function to build SDF world
+// Pure function to merge continuous walls for MVSim (no origin offset)
+function mergeWallsMVSim(state: State, thickness: number, height: number): WallSegment[] {
+  const segments: WallSegment[] = [];
+  const cellSize = state.cellSizeM;
+  
+  // Process horizontal walls - merge continuous segments
+  for (let r = 0; r <= state.rows; r++) {
+    let segmentStart = -1;
+    for (let c = 0; c <= state.cols; c++) {
+      if (c < state.cols && state.hEdges[r][c]) {
+        if (segmentStart === -1) segmentStart = c;
+      } else if (segmentStart !== -1) {
+        // End of segment - create wall with accurate endpoints and thickness margin
+        const segmentEnd = c - 1; // Last column index in segment
+        const baseLength = (segmentEnd - segmentStart + 1) * cellSize; // Exact segment length
+        const length = baseLength + thickness; // Add thickness margin (thickness/2 * 2)
+        
+        // Position: center between segment start and end cells (absolute coordinates)
+        const startX = segmentStart * cellSize;
+        const endX = (segmentEnd + 1) * cellSize;
+        const x = (startX + endX) / 2; // Center of segment span
+        const y = (state.rows - r) * cellSize; // Wall at row boundary (Y-axis inverted for correct orientation)
+        
+        segments.push({
+          type: 'horizontal',
+          x, y,
+          length,
+          thickness,
+          height
+        });
+        segmentStart = -1;
+      }
+    }
+    // Handle segment that extends to the end
+    if (segmentStart !== -1) {
+      const segmentEnd = state.cols - 1; // Last column index
+      const baseLength = (segmentEnd - segmentStart + 1) * cellSize;
+      const length = baseLength + thickness; // Add thickness margin
+      
+      const startX = segmentStart * cellSize;
+      const endX = (segmentEnd + 1) * cellSize;
+      const x = (startX + endX) / 2;
+      const y = (state.rows - r) * cellSize;
+      
+      segments.push({
+        type: 'horizontal',
+        x, y,
+        length,
+        thickness,
+        height
+      });
+    }
+  }
+  
+  // Process vertical walls - merge continuous segments
+  for (let xIdx = 0; xIdx <= state.cols; xIdx++) {
+    let segmentStart = -1;
+    for (let r = 0; r <= state.rows; r++) {
+      if (r < state.rows && state.vEdges[xIdx][r]) {
+        if (segmentStart === -1) segmentStart = r;
+      } else if (segmentStart !== -1) {
+        // End of segment - create wall with accurate endpoints and thickness margin
+        const segmentEnd = r - 1; // Last row index in segment
+        const baseLength = (segmentEnd - segmentStart + 1) * cellSize; // Exact segment length
+        const length = baseLength + thickness; // Add thickness margin (thickness/2 * 2)
+        
+        // Position: center between segment start and end cells (absolute coordinates)
+        const startY = (state.rows - segmentEnd - 1) * cellSize;
+        const endY = (state.rows - segmentStart) * cellSize;
+        const x = xIdx * cellSize; // Wall at column boundary
+        const y = (startY + endY) / 2; // Center of segment span (Y-axis inverted for correct orientation)
+        
+        segments.push({
+          type: 'vertical',
+          x, y,
+          length,
+          thickness,
+          height
+        });
+        segmentStart = -1;
+      }
+    }
+    // Handle segment that extends to the end
+    if (segmentStart !== -1) {
+      const segmentEnd = state.rows - 1; // Last row index
+      const baseLength = (segmentEnd - segmentStart + 1) * cellSize;
+      const length = baseLength + thickness; // Add thickness margin
+      
+      const startY = (state.rows - segmentEnd - 1) * cellSize;
+      const endY = (state.rows - segmentStart) * cellSize;
+      const x = xIdx * cellSize;
+      const y = (startY + endY) / 2;
+      
+      segments.push({
+        type: 'vertical',
+        x, y,
+        length,
+        thickness,
+        height
+      });
+    }
+  }
+  
+  return segments;
+}
+
+// Pure function to build SDF world for Gazebo Classic
 export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickness: number = 0.03): string {
+  return buildSdfWorldInternal(state, wallHeight, wallThickness, 'classic');
+}
+
+// Pure function to build SDF world for Ignition Gazebo
+export function buildSdfWorldIgnition(state: State, wallHeight: number = 0.5, wallThickness: number = 0.03): string {
+  return buildSdfWorldInternal(state, wallHeight, wallThickness, 'ignition');
+}
+
+// Internal SDF world builder with format option
+function buildSdfWorldInternal(state: State, wallHeight: number = 0.5, wallThickness: number = 0.03, format: 'classic' | 'ignition' = 'classic'): string {
   const height = wallHeight; // m
   const thickness = wallThickness; // m (use user-specified thickness)
   
   const out: string[] = [];
   out.push('<sdf version="1.7">');
   out.push('  <world name="map_world">');
+  
+  // Add Ignition Gazebo plugins if needed
+  if (format === 'ignition') {
+    out.push('    <!-- Ignition Gazebo System Plugins -->');
+    out.push('    <plugin name="gz::sim::systems::Physics" filename="gz-sim-physics-system"/>');
+    out.push('    <plugin name="gz::sim::systems::UserCommands" filename="gz-sim-user-commands-system"/>');
+    out.push('    <plugin name="gz::sim::systems::SceneBroadcaster" filename="gz-sim-scene-broadcaster-system"/>');
+    out.push('    <plugin name="gz::sim::systems::Contact" filename="gz-sim-contact-system"/>');
+    out.push('');
+  }
   
   // Ground plane (self-defined for full control)
   out.push('    <model name="ground_plane">');
@@ -371,12 +497,22 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   out.push('    <atmosphere type="adiabatic"/>');
   out.push('');
   
-  // Physics settings (based on working example)
-  out.push('    <physics name="default_physics" default="0" type="ode">');
-  out.push('      <max_step_size>0.001</max_step_size>');
-  out.push('      <real_time_factor>1</real_time_factor>');
-  out.push('      <real_time_update_rate>1000</real_time_update_rate>');
-  out.push('    </physics>');
+  // Physics settings
+  if (format === 'classic') {
+    // Gazebo Classic physics (working configuration)
+    out.push('    <physics name="default_physics" default="0" type="ode">');
+    out.push('      <max_step_size>0.001</max_step_size>');
+    out.push('      <real_time_factor>1</real_time_factor>');
+    out.push('      <real_time_update_rate>1000</real_time_update_rate>');
+    out.push('    </physics>');
+  } else {
+    // Ignition Gazebo physics (enabled by plugins)
+    out.push('    <physics name="default_physics" default="1" type="ode">');
+    out.push('      <max_step_size>0.001</max_step_size>');
+    out.push('      <real_time_factor>1</real_time_factor>');
+    out.push('      <real_time_update_rate>1000</real_time_update_rate>');
+    out.push('    </physics>');
+  }
   out.push('');
   
   // Ambient lighting with directional light
@@ -457,7 +593,7 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
     out.push(`        <pose frame="">${segment.x} ${segment.y} 0 0 -0 0</pose>`);
     out.push('        <self_collide>0</self_collide>');
     out.push('        <enable_wind>0</enable_wind>');
-    out.push('        <kinematic>0</kinematic>');
+    out.push('        <kinematic>1</kinematic>');
     out.push('      </link>');
   });
   
@@ -465,6 +601,96 @@ export function buildSdfWorld(state: State, wallHeight: number = 0.5, wallThickn
   
   out.push('  </world>');
   out.push('</sdf>');
+  
+  return out.join('\n');
+}
+
+// Pure function to build MVSim XML world
+export function buildMVSimWorld(state: State, wallHeight: number = 0.5, wallThickness: number = 0.03): string {
+  const out: string[] = [];
+  
+  // XML header and root element
+  out.push('<?xml version="1.0"?>');
+  out.push('<mvsim_world>');
+  
+  // Ground plane
+  const mapWidth = state.cols * state.cellSizeM;
+  const mapHeight = state.rows * state.cellSizeM;
+  const margin = 1.0; // 1m margin around the map
+  
+  out.push('  <!-- Ground plane -->');
+  out.push('  <element class="horizontal_plane">');
+  out.push(`    <x_min>${-margin}</x_min>`);
+  out.push(`    <y_min>${-margin}</y_min>`);
+  out.push(`    <x_max>${mapWidth + margin}</x_max>`);
+  out.push(`    <y_max>${mapHeight + margin}</y_max>`);
+  out.push('    <z>0.0</z>');
+  out.push('    <color>#a0a0a0</color>');
+  out.push('  </element>');
+  out.push('');
+  
+  // Get merged wall segments (using MVSim-specific function without origin offset)
+  const wallSegments = mergeWallsMVSim(state, wallThickness, wallHeight);
+  
+  // Convert wall segments to MVSim vertical planes
+  if (wallSegments.length > 0) {
+    out.push('  <!-- Walls -->');
+    wallSegments.forEach((segment, index) => {
+      out.push(`  <element class="vertical_plane">`);
+      
+      if (segment.type === 'horizontal') {
+        // Horizontal wall: extends along X-axis
+        const x0 = segment.x - segment.length / 2;
+        const x1 = segment.x + segment.length / 2;
+        const y = segment.y;
+        
+        out.push(`    <x0>${x0}</x0> <y0>${y}</y0>`);
+        out.push(`    <x1>${x1}</x1> <y1>${y}</y1>`);
+      } else {
+        // Vertical wall: extends along Y-axis
+        const x = segment.x;
+        const y0 = segment.y - segment.length / 2;
+        const y1 = segment.y + segment.length / 2;
+        
+        out.push(`    <x0>${x}</x0> <y0>${y0}</y0>`);
+        out.push(`    <x1>${x}</x1> <y1>${y1}</y1>`);
+      }
+      
+      out.push(`    <z>0.0</z>`);
+      out.push(`    <height>${wallHeight}</height>`);
+      out.push('    <color>#0000ff</color>');
+      out.push(`  </element>`);
+    });
+  }
+  
+  out.push('</mvsim_world>');
+  
+  return out.join('\n');
+}
+
+// Pure function to build Flatland world YAML
+export function buildFlatlandWorld(state: State): string {
+  const out: string[] = [];
+  
+  // World properties
+  out.push('# Flatland world file generated from ROS GridMap Generator');
+  out.push('# Walls are automatically extracted from the map image');
+  out.push('');
+  out.push('properties:');
+  out.push('  velocity_iterations: 10');
+  out.push('  position_iterations: 10');
+  out.push('');
+  
+  // Layers with map reference
+  out.push('layers:');
+  out.push('  - name: static_map');
+  out.push('    map: "map.yaml"  # ROS map YAML file');
+  out.push('    color: [0.4, 0.4, 0.4, 1]  # RGBA visualization color');
+  out.push('');
+  
+  // Models (empty - robots should be spawned separately)
+  out.push('models: []');
+  out.push('');
   
   return out.join('\n');
 }

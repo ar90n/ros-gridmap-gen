@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Map server -->
+  <node name="map_server" pkg="map_server" type="map_server" args="/workspace/maps/map_ros1.yaml" output="screen">
+    <param name="frame_id" value="map"/>
+  </node>
+
+  <!-- Flatland server with simple configuration -->
+  <node name="flatland_server" pkg="flatland_server" type="flatland_server" output="screen">
+    <param name="world_path" value="$(find flatland_server)/worlds/simple.yaml" />
+    <param name="update_rate" value="100.0" />
+    <param name="step_size" value="0.01" />
+    <param name="show_viz" value="true" />
+    <param name="viz_pub_rate" value="30.0" />
+  </node>
+
+  <!-- Static transforms -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="map_to_odom" 
+        args="0 0 0 0 0 0 map odom" />
+  
+  <node pkg="tf2_ros" type="static_transform_publisher" name="odom_to_base_footprint" 
+        args="0 0 0 0 0 0 odom base_footprint" />
+
+  <!-- Teleop for manual control -->
+  <node name="teleop" pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" output="screen">
+    <remap from="/cmd_vel" to="/cmd_vel"/>
+  </node>
+</launch>

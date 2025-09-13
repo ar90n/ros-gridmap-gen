@@ -6,6 +6,7 @@ import {
   buildYamlROS1,
   buildYamlROS2,
   buildSdfWorld,
+  buildMVSimWorld,
   type State,
   type Deg
 } from './core';
@@ -192,6 +193,53 @@ describe('Core Business Logic', () => {
       const sdf = buildSdfWorld(state, 0.5, 0.2); // Custom thickness 0.2
       
       expect(sdf).toContain('0.2'); // Check for custom thickness
+    });
+  });
+
+  describe('buildMVSimWorld', () => {
+    it('should generate valid MVSim XML', () => {
+      const state = makeDefaultState(2, 2);
+      const mvsim = buildMVSimWorld(state);
+      
+      expect(mvsim).toContain('<?xml version="1.0"?>');
+      expect(mvsim).toContain('<mvsim_world>');
+      expect(mvsim).toContain('<element class="horizontal_plane">');
+      expect(mvsim).toContain('</mvsim_world>');
+    });
+
+    it('should create vertical plane elements for walls', () => {
+      const state = makeDefaultState(2, 2);
+      state.hEdges[1][0] = true;
+      state.vEdges[1][0] = true;
+      
+      const mvsim = buildMVSimWorld(state);
+      
+      expect(mvsim).toContain('<element class="vertical_plane">');
+      expect(mvsim).toContain('<x0>');
+      expect(mvsim).toContain('<y0>');
+      expect(mvsim).toContain('<height>');
+    });
+
+    it('should set correct ground plane dimensions', () => {
+      const state = makeDefaultState(3, 3);
+      state.cellSizeM = 1.0; // 3x3m grid
+      
+      const mvsim = buildMVSimWorld(state);
+      
+      // Should have 1m margin, so -1 to 4
+      expect(mvsim).toContain('<x_min>-1</x_min>');
+      expect(mvsim).toContain('<y_min>-1</y_min>');
+      expect(mvsim).toContain('<x_max>4</x_max>');
+      expect(mvsim).toContain('<y_max>4</y_max>');
+    });
+
+    it('should set custom wall height', () => {
+      const state = makeDefaultState(2, 2);
+      state.hEdges[0][0] = true;
+      
+      const mvsim = buildMVSimWorld(state, 1.5); // Custom height 1.5m
+      
+      expect(mvsim).toContain('<height>1.5</height>');
     });
   });
 });

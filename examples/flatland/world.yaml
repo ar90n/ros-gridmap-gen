@@ -1,0 +1,15 @@
+properties:
+  # World map settings
+  map:
+    color: [0.9, 0.9, 0.9]  # Light gray background
+    
+  # Use the generated map from map_server
+  use_map_topic: true
+  
+# Empty world - map comes from map_server
+bodies: []
+
+layers:
+  - name: ground
+    type: ground
+    color: [0.5, 0.5, 0.5]

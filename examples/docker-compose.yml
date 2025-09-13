@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  gazebo-classic:
+    build: ./gazebo-classic
+    container_name: ros-gridmap-gazebo-classic
+    volumes:
+      - ./shared/maps:/workspace/maps:ro
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+    network_mode: host
+    stdin_open: true
+    tty: true
+    command: bash
+
+  gazebo-ignition:
+    build: ./gazebo-ignition
+    container_name: ros-gridmap-gazebo-modern
+    volumes:
+      - ./shared/maps:/workspace/maps:ro
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+    network_mode: host
+    stdin_open: true
+    tty: true
+    command: bash
+
+  mvsim:
+    build: ./mvsim
+    container_name: ros-gridmap-mvsim
+    volumes:
+      - ./shared/maps:/workspace/maps:ro
+      - ./mvsim/launch:/workspace/launch:ro
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+    network_mode: host
+    stdin_open: true
+    tty: true
+    command: bash
+
+  flatland:
+    build: ./flatland
+    container_name: ros-gridmap-flatland
+    volumes:
+      - ./shared/maps:/workspace/maps:ro
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+    network_mode: host
+    stdin_open: true
+    tty: true
+    command: bash
