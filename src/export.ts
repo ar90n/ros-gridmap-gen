@@ -1,4 +1,4 @@
-import { buildPGM, buildYamlROS1, buildYamlROS2, buildSdfWorld, buildSdfWorldIgnition, buildMVSimWorld, type State } from './core';
+import { buildPGM, buildYamlROS1, buildYamlROS2, buildSdfWorld, buildSdfWorldIgnition, buildMVSimWorld, buildFlatlandWorld, type State } from './core';
 import JSZip from 'jszip';
 
 // File download utilities with save dialog
@@ -45,11 +45,11 @@ export async function exportAll(state: State, opts: { rosVersion: 'ros1' | 'ros2
   const pgmBlob = buildPGM(state);
   zip.file('map.pgm', pgmBlob);
   
-  // Export YAML files based on ROS version selection
+  // Export YAML files based on ROS version selection (unified filename)
   if (opts.rosVersion === 'ros1') {
-    zip.file('map_ros1.yaml', buildYamlROS1(state));
+    zip.file('map.yaml', buildYamlROS1(state));
   } else if (opts.rosVersion === 'ros2') {
-    zip.file('map_ros2.yaml', buildYamlROS2(state));
+    zip.file('map.yaml', buildYamlROS2(state));
   }
   
   // Export simulator format based on selection
@@ -59,8 +59,9 @@ export async function exportAll(state: State, opts: { rosVersion: 'ros1' | 'ros2
     zip.file('world_ignition.sdf', buildSdfWorldIgnition(state, opts.wallHeight, state.wallThicknessM));
   } else if (opts.simulatorFormat === 'mvsim') {
     zip.file('world_mvsim.xml', buildMVSimWorld(state, opts.wallHeight, state.wallThicknessM));
+  } else if (opts.simulatorFormat === 'flatland') {
+    zip.file('world_flatland.yaml', buildFlatlandWorld(state));
   }
-  // Note: Flatland uses only PGM + YAML files, no world file needed
   
   // Generate and download ZIP file
   const zipBlob = await zip.generateAsync({ type: 'blob' });
